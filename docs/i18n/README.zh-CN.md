@@ -13,6 +13,7 @@
 | 工具 | 做什么 |
 |---|---|
 | [A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md) | 用交易所每日公布的 ETF 份额，推算"国家队"（中央汇金、中证金融等）重仓宽基 ETF 的每日净申赎，识别进出场波段；由基金定期报告推出其减持的硬下界；并回测一个"每晚估计国家队仓位、次日跟上"的策略。 |
+| [全球集装箱运价数据跟踪](../tools/global-track-container-freight.md) | 每周采集上海航运交易所发布的集装箱运价指数：CCFI（综合指数及 12 条航线）、SCFI 综合指数，以及欧洲与美西航线的 SCFIS 结算运价指数；更早的零散历史来自网页存档快照。 |
 
 ## 特点
 
@@ -54,7 +55,7 @@ invest-diy/
 
 - [架构](../architecture.md)：服务器、工具发现、前端组件、静态导出
 - [开发指南](../development.md)：环境、约定、新增工具、静态导出
-- 工具：[A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md)
+- 工具：[A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md)、[全球集装箱运价数据跟踪](../tools/global-track-container-freight.md)
 
 ## 参与贡献
 

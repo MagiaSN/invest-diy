@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="page.title">全球集装箱运价数据跟踪</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .take { display: flex; flex-direction: column; gap: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: inherit; font-size: 12px; color: var(--fg-muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+  .chip:hover { color: var(--fg); border-color: var(--axis); }
+  .chip[aria-pressed="true"] { color: var(--fg); border-color: var(--axis); background: var(--grid); }
+  .chip i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; background: var(--line); vertical-align: -0.5px; }
+  #lane-table th:first-child, #lane-table td:first-child { text-align: left; }
+  #lane-table tbody tr { cursor: pointer; }
+  #lane-table tbody tr:hover { background: var(--grid); }
+  #lane-table i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+  .about { margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.85; max-width: 92ch; display: flex; flex-direction: column; gap: 6px; }
+  .about b { color: var(--fg); font-weight: 600; }
+</style>
+</head>
+<body>
+<!-- every static text has a data-i18n key (see strings.js); the Chinese inside tags is only a placeholder until scripts load -->
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title" data-i18n="page.title">全球集装箱运价数据跟踪</span>
+    <span class="topbar-right" id="asof"></span>
+  </div>
+  <nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav>
+</header>
+
+<main class="page">
+  <div class="take">
+    <h1 class="page-title" data-i18n="page.title">全球集装箱运价数据跟踪</h1>
+    <p class="stale" id="stale" hidden></p>
+    <p class="lede" id="take-now">加载中…</p>
+    <p class="lede" id="take-cover"></p>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><span class="kpi-label" data-i18n="k.scfi">SCFI 综合指数</span><span class="kpi-value" id="k-scfi">—</span><span class="kpi-sub" id="k-scfi-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.ccfi">CCFI 综合指数</span><span class="kpi-value" id="k-ccfi">—</span><span class="kpi-sub" id="k-ccfi-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.scfisEu">SCFIS 欧洲航线</span><span class="kpi-value" id="k-scfis-eu">—</span><span class="kpi-sub" id="k-scfis-eu-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.scfisUs">SCFIS 美西航线</span><span class="kpi-value" id="k-scfis-us">—</span><span class="kpi-sub" id="k-scfis-us-sub">—</span></div>
+  </section>
+
+  <section class="card" id="composite" data-nav="nav.comp">
+    <div class="card-head">
+      <h2 data-i18n="comp.h2">综合指数：SCFI 与 CCFI</h2>
+      <div class="card-tools"><div id="comp-range"></div><span class="dl" data-files="history"></span></div>
+    </div>
+    <p class="note" data-i18n="comp.note"></p>
+    <div class="legend" id="comp-legend"></div>
+    <div class="chart loading" id="comp-box" style="min-height: 300px"></div>
+  </section>
+
+  <section class="card" id="lanes" data-nav="nav.lanes">
+    <div class="card-head">
+      <h2 data-i18n="lanes.h2">CCFI 分航线</h2>
+      <div class="card-tools"><div id="lanes-range"></div><span class="dl" data-files="latest history"></span></div>
+    </div>
+    <p class="note" data-i18n="lanes.note"></p>
+    <div class="chips" id="lane-chips" role="group" data-i18n-aria-label="lanes.pick"></div>
+    <div class="chart loading" id="lanes-box" style="min-height: 300px"></div>
+    <div class="tablebox">
+      <table class="table" id="lane-table">
+        <thead><tr>
+          <th data-i18n="t.lane"></th><th data-i18n="t.date"></th><th data-i18n="t.value"></th>
+          <th data-i18n="t.1w"></th><th data-i18n="t.4w"></th><th data-i18n="t.52w"></th><th data-i18n="t.n"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="scfis" data-nav="nav.scfis">
+    <div class="card-head">
+      <h2 data-i18n="scfis.h2">SCFIS 结算运价指数</h2>
+      <div class="card-tools"><div id="scfis-range"></div><span class="dl" data-files="history"></span></div>
+    </div>
+    <p class="note" data-i18n="scfis.note"></p>
+    <div class="legend" id="scfis-legend"></div>
+    <div class="chart loading" id="scfis-box" style="min-height: 260px"></div>
+  </section>
+
+  <section class="card" id="about" data-nav="nav.about">
+    <h2 data-i18n="a.h2">关于本页</h2>
+    <ol class="about">
+      <li data-i18n-html="a.what"></li>
+      <li data-i18n-html="a.src"></li>
+      <li data-i18n-html="a.history"></li>
+      <li data-i18n-html="a.calc"></li>
+      <li data-i18n-html="a.limits"></li>
+    </ol>
+  </section>
+</main>
+
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

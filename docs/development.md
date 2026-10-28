@@ -53,6 +53,7 @@ Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States),
        "kind_en": "Tracker",
        "update": "python -m investdiy.<package>",
        "asof_file": "data/out/xxx.csv",        # optional: first row's as_of column, shown as "data as of"
+       "max_stale_days": 10,                   # optional: the scheduled update fails when as_of is older (default MAX_STALE_DAYS)
    }
    ```
 
@@ -88,7 +89,7 @@ cd investdiy/dist && python3 -m http.server           # preview
 `.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs twice a day, Beijing time: at 23:47 from Monday to Friday for the preliminary units of day T (SSE publishes them at about 22:10, SZSE at about 23:20), and at 09:37 from Tuesday to Saturday for the final units published on the morning of T+1. It can also be started by hand from the Actions tab ("Run workflow", optionally without publishing).
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
-- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer.
+- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer. Tools whose sources only show recent data (such as the freight tracker) merge their own published CSV from the live site (`INVESTDIY_SITE`, set by the workflow), so an evicted cache does not lose their history.
 - **Seeding from local data**: to skip the backfill, upload local data to a draft release (drafts are visible only to collaborators and create no tag), run the workflow by hand with "seed" checked, then delete the release:
 
   ```bash
@@ -97,5 +98,5 @@ cd investdiy/dist && python3 -m http.server           # preview
   gh workflow run update.yml -f seed=true
   gh release delete seed-data --yes        # after the run has saved the cache
   ```
-- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days, or for more than the `max_stale_days` set in its `TOOL` dict, such as 17 for the weekly freight indices (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
 - **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.

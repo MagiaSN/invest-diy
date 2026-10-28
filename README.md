@@ -13,6 +13,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 | Tool | What it does |
 |---|---|
 | [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
+| [Global Container Freight Tracker](docs/tools/global-track-container-freight.md) | Collects the weekly container freight indices of the Shanghai Shipping Exchange: the CCFI (composite and 12 trade lanes), the SCFI composite and the SCFIS settlement index for Europe and the US West Coast, with sparse earlier history from web archive snapshots. |
 
 ## Features
 
@@ -52,7 +53,7 @@ invest-diy/
 
 - [Architecture](docs/architecture.md): server, tool discovery, front-end kit, static export
 - [Development guide](docs/development.md): setup, conventions, adding a tool, static export
-- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md)
+- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [Global Container Freight Tracker](docs/tools/global-track-container-freight.md)
 
 ## Contributing
 
