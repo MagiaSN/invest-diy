@@ -1,0 +1,171 @@
+# Daily update in two jobs run one after the other:
+#   update   fetch every tool's data, check its dates and export the static site (uploaded as an artifact)
+#   publish  publish that export to surge.sh
+#
+# Data is not committed, so investdiy/*/data/ is carried between runs in the Actions cache.
+# The first run (or a run after the cache was evicted) backfills everything from scratch and takes longer,
+# unless it is started by hand with "seed": the data then comes from a local copy uploaded as seed.tar.gz to
+# the draft release seed-data (drafts are visible only to collaborators; see docs/development.md).
+#
+# The publish job reads its secrets from the Publish environment: SURGE_LOGIN (surge account email),
+# SURGE_TOKEN (from `npx surge@0.44.5 token`). The update job has no access to them.
+
+name: Update data and publish
+
+on:
+  schedule:
+    # 01:30 UTC = 09:30 Beijing, Tuesday to Saturday: the exchanges publish final units for day T on the morning of T+1
+    - cron: "30 1 * * 2-6"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to surge.sh"
+        type: boolean
+        default: true
+      seed:
+        description: "Start from the seed-data draft release instead of the cache"
+        type: boolean
+        default: false
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOMAIN: invest-diy.surge.sh
+  SURGE: surge@0.44.5   # pinned; only move to releases that have been out for at least two weeks
+  MAX_STALE_DAYS: "10"  # longer than the Spring Festival and National Day closures
+
+jobs:
+  seed:
+    if: inputs.seed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # draft releases are only visible with write access
+    timeout-minutes: 15
+    steps:
+      - run: gh release download seed-data --repo "$GITHUB_REPOSITORY" --pattern seed.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seed
+          path: seed.tar.gz
+          retention-days: 1
+
+  update:
+    needs: seed
+    if: ${{ !cancelled() && needs.seed.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore data
+        if: ${{ !inputs.seed }}
+        uses: actions/cache/restore@v4
+        with:
+          path: investdiy/*/data
+          key: data-${{ github.run_id }}
+          restore-keys: data-
+
+      - if: inputs.seed
+        uses: actions/download-artifact@v4
+        with:
+          name: seed
+
+      - name: Unpack seed data
+        if: inputs.seed
+        run: tar xzf seed.tar.gz && rm seed.tar.gz
+
+      - name: Update every tool
+        id: update
+        run: |
+          python - <<'EOF'
+          import subprocess, sys
+          from investdiy.registry import discover
+          failed = []
+          for tool, _ in discover().values():
+              cmd = [sys.executable, "-m", tool.update.split()[-1]]
+              print(f"::group::{tool.slug}", flush=True)
+              if subprocess.run(cmd).returncode != 0:
+                  failed.append(tool.slug)
+              print("::endgroup::", flush=True)
+          if failed:
+              sys.exit(f"update failed: {', '.join(failed)}")
+          EOF
+
+      # saved even if a later step fails, so the next run continues from here instead of backfilling
+      - name: Save data
+        if: always() && steps.update.outcome != 'skipped'
+        uses: actions/cache/save@v4
+        with:
+          path: investdiy/*/data
+          key: data-${{ github.run_id }}
+
+      # never publish data older than what is live (e.g. a fresh cache whose backfill failed);
+      # fail the run when data stops advancing, since fetch errors are logged but do not fail the update
+      - name: Check data dates
+        run: |
+          python - <<'EOF'
+          import json, os, sys, urllib.request
+          from datetime import date
+          from investdiy.registry import discover
+          from investdiy.server import tools_payload
+          new = {t["slug"]: t["asof"] for t in tools_payload(discover())}
+          try:
+              with urllib.request.urlopen(f"https://{os.environ['DOMAIN']}/api/tools.json", timeout=30) as r:
+                  live = {t["slug"]: t["asof"] for t in json.load(r)}
+          except Exception as exc:
+              print(f"::warning::cannot read the live site ({exc}); skipping the comparison")
+              live = {}
+          errors = []
+          for slug, asof in new.items():
+              print(f"{slug}: new {asof}, live {live.get(slug)}")
+              if not asof:
+                  errors.append(f"{slug} has no data")
+              elif live.get(slug) and asof < live[slug]:
+                  errors.append(f"{slug} is older than the live site ({asof} < {live[slug]})")
+              elif (date.today() - date.fromisoformat(asof)).days > int(os.environ["MAX_STALE_DAYS"]):
+                  errors.append(f"{slug} has not advanced since {asof}")
+          if errors:
+              sys.exit("; ".join(errors))
+          EOF
+
+      - name: Export
+        run: python -m investdiy.export
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: investdiy/dist
+          retention-days: 7
+
+  publish:
+    needs: update
+    # spelled out: a skipped seed job would otherwise skip this job too
+    if: ${{ !cancelled() && needs.update.result == 'success' && (github.event_name == 'schedule' || inputs.publish) }}
+    runs-on: ubuntu-latest
+    environment: Publish   # holds the surge secrets
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+
+      - name: Publish to surge.sh
+        env:
+          SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+        run: npx --yes "$SURGE" dist "$DOMAIN"

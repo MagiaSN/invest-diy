@@ -82,3 +82,20 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 - The snapshot is static: run each tool's update command first, then export.
 - The export includes each tool's `data/out/` CSV files. Check the data providers' terms before hosting it publicly.
+
+## Scheduled updates
+
+`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs at 09:30 Beijing time from Tuesday to Saturday and can be started by hand from the Actions tab ("Run workflow", optionally without publishing).
+
+- **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
+- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer.
+- **Seeding from local data**: to skip the backfill, upload local data to a draft release (drafts are visible only to collaborators and create no tag), run the workflow by hand with "seed" checked, then delete the release:
+
+  ```bash
+  tar czf seed.tar.gz --exclude='*.tmp' investdiy/*/data
+  gh release create seed-data seed.tar.gz --draft --title seed-data --notes "Seed data for the update workflow"
+  gh workflow run update.yml -f seed=true
+  gh release delete seed-data --yes        # after the run has saved the cache
+  ```
+- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.
