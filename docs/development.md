@@ -85,7 +85,7 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs at 09:30 Beijing time from Tuesday to Saturday and can be started by hand from the Actions tab ("Run workflow", optionally without publishing).
+`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs twice a day, Beijing time: at 23:47 from Monday to Friday for the preliminary units of day T (SSE publishes them at about 22:10, SZSE at about 23:20), and at 09:37 from Tuesday to Saturday for the final units published on the morning of T+1. It can also be started by hand from the Actions tab ("Run workflow", optionally without publishing).
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
 - **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer.
