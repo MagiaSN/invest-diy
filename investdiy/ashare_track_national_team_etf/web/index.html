@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="page.title">A股国家队宽基ETF数据跟踪</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .sms { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 14px; }
+  .sm { display: flex; flex-direction: column; gap: 2px; min-width: 0; border-top: 1px solid var(--line); padding-top: 6px; position: relative; }
+  .sm-row { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; }
+  .sm-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sm-muted { color: var(--fg-muted); white-space: nowrap; }
+  #pool-table th:nth-child(-n+3), #pool-table td:nth-child(-n+3),
+  #ep-table th:nth-child(-n+3), #ep-table td:nth-child(-n+3) { text-align: left; }
+  .take { display: flex; flex-direction: column; gap: 4px; }
+  .take a { white-space: nowrap; }
+  .kpi-sub a { white-space: nowrap; }
+  .about { margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.85; max-width: 92ch; display: flex; flex-direction: column; gap: 6px; }
+  .about b { color: var(--fg); font-weight: 600; }
+  #checks .tablebox { max-height: none; }
+  #ck-table { table-layout: fixed; min-width: 960px; }
+  #ck-table th, #ck-table td { text-align: left; vertical-align: top; white-space: normal; line-height: 1.55; }
+  #ck-table th:nth-child(1) { width: 9.5em; } #ck-table th:nth-child(2) { width: 17%; } #ck-table th:nth-child(3),
+  #ck-table th:nth-child(4) { width: 20%; } #ck-table th:nth-child(5) { width: 27%; } #ck-table th:nth-child(6) { width: 7.5em; }
+  #ck-table .ck-date { font-variant-numeric: tabular-nums; }
+  .ck-note { margin-top: 4px; font-size: 12px; color: var(--fg-muted); }
+  .ck-sum { margin: 4px 0 0; font-size: 13.5px; line-height: 1.7; max-width: 92ch; }
+  .pill.ck-match { color: var(--fg); } .pill.ck-scope, .pill.ck-date { color: var(--warn); } .pill.ck-blind { color: var(--fg-muted); }
+</style>
+</head>
+<body>
+<!-- every static text has a data-i18n key (see strings.js); the Chinese inside tags is only a placeholder until scripts load -->
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title" data-i18n="page.title">A股国家队宽基ETF数据跟踪</span>
+    <span class="topbar-right" id="asof"></span>
+  </div>
+  <nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav>
+</header>
+
+<main class="page">
+  <div class="take">
+    <h1 class="page-title" data-i18n="page.title">A股国家队宽基ETF数据跟踪</h1>
+    <p class="stale" id="stale" hidden></p>
+    <p class="lede" id="take-now">加载中…</p>
+    <p class="lede" id="take-hold"></p>
+    <p class="lede"><span data-i18n="bt.promo">国家队自己收益如何？跟随国家队交易收益如何？</span> <a href="backtest.html" data-i18n="bt.promoLink">查看跟踪回测 →</a></p>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><span class="kpi-label" data-i18n="k.1d">最近交易日净申赎</span><span class="kpi-value" id="k-1d">—</span><span class="kpi-sub" id="k-1d-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.5d">近 5 个交易日</span><span class="kpi-value" id="k-5d">—</span><span class="kpi-sub" id="k-pool">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.20d">近 20 个交易日</span><span class="kpi-value" id="k-20d">—</span><span class="kpi-sub" data-i18n="k.20d.sub">约一个月</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.ytd">今年以来</span><span class="kpi-value" id="k-ytd">—</span><span class="kpi-sub" data-i18n="k.ytd.sub">自 1 月 1 日起</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.state">当前状态</span><span class="kpi-value" id="k-state">—</span><span class="kpi-sub" id="k-th">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.floor">国家队确证减持</span><span class="kpi-value" id="k-floor">—</span><span class="kpi-sub"><span id="k-floor-sub">—</span> <a href="#holdings" data-i18n="link.basis">查看依据 ↓</a></span></div>
+  </section>
+
+  <section class="card" id="cumulative" data-nav="nav.cum">
+    <div class="card-head">
+      <h2 data-i18n="cum.h2">累计净申赎与沪深300</h2>
+      <div class="card-tools"><div id="cum-range"></div><span class="dl" data-files="daily"></span></div>
+    </div>
+    <p class="note" data-i18n="cum.note"></p>
+    <div class="legend" id="cum-legend"></div>
+    <div class="chart loading" id="cum-box" style="min-height: 320px"></div>
+  </section>
+
+  <section class="card" id="calendar" data-nav="nav.cal">
+    <div class="card-head">
+      <h2 data-i18n="cal.h2">每日净申赎日历</h2>
+      <div class="card-tools"><div id="cal-range"></div><span class="dl" data-files="daily"></span></div>
+    </div>
+    <p class="note" data-i18n="cal.note"></p>
+    <div class="legend" id="cal-legend"></div>
+    <div class="chart loading" id="cal-box" style="min-height: 180px"></div>
+  </section>
+
+  <section class="card" id="pool" data-nav="nav.pool">
+    <div class="card-head">
+      <h2 data-i18n="pool.h2">监控池明细</h2>
+      <div class="card-tools">
+        <div class="seg" id="pool-mode" role="group">
+          <button type="button" data-mode="flow" aria-pressed="true" data-i18n="pool.modeFlow"></button>
+          <button type="button" data-mode="hold" aria-pressed="false" data-i18n="pool.modeHold"></button>
+        </div>
+        <span class="dl" data-files="etf_summary floor pool"></span>
+      </div>
+    </div>
+    <p class="note" id="pool-note"></p>
+    <div class="tablebox">
+      <table class="table" id="pool-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="card" id="episodes" data-nav="nav.ep">
+    <div class="card-head">
+      <h2 data-i18n="ep.h2">进出场波段</h2>
+      <div class="card-tools"><a href="backtest.html" data-i18n="bt.promoLink">查看跟踪回测 →</a><span class="dl" data-files="episodes"></span></div>
+    </div>
+    <p class="note" data-i18n="ep.note"></p>
+    <div class="tablebox">
+      <table class="table" id="ep-table">
+        <thead><tr>
+          <th data-i18n="ep.start"></th><th data-i18n="ep.end"></th><th data-i18n="ep.side"></th><th data-i18n="ep.days"></th>
+          <th data-i18n="ep.flow"></th><th data-i18n="ep.peak"></th><th data-i18n="ep.hs"></th><th data-i18n="ep.chg"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="holdings" data-nav="nav.hold">
+    <div class="card-head">
+      <h2 data-i18n="hold.h2">官方持仓与减持下界</h2>
+      <div class="card-tools"><span class="dl" data-files="nt_history floor_daily nt_holdings holders"></span></div>
+    </div>
+    <p class="note" data-i18n-html="hold.note"></p>
+    <div class="grid2">
+      <div>
+        <div class="legend" id="hold-legend"></div>
+        <div class="chart loading" id="hold-box" style="min-height: 280px"></div>
+        <p class="note" data-i18n="hold.chartNote"></p>
+      </div>
+      <div>
+        <div class="legend" id="floor-legend"></div>
+        <div class="chart loading" id="floor-box" style="min-height: 280px"></div>
+        <p class="note" data-i18n="floor.chartNote"></p>
+      </div>
+    </div>
+    <p class="note" data-i18n="hold.tableHint"></p>
+  </section>
+
+  <section class="card" id="monthly" data-nav="nav.mon">
+    <div class="card-head">
+      <h2 data-i18n="mon.h2">月度净申赎：按指数族</h2>
+      <div class="card-tools"><div id="mon-range"></div><span class="dl" data-files="monthly"></span></div>
+    </div>
+    <p class="note" data-i18n="mon.note"></p>
+    <div class="legend" id="mon-legend"></div>
+    <div class="chart loading" id="mon-box" style="min-height: 300px"></div>
+  </section>
+
+  <section class="card" id="etfs" data-nav="nav.sm">
+    <div class="card-head">
+      <h2 data-i18n="sm.h2">单只 ETF 份额走势</h2>
+      <div class="card-tools"><div id="sm-range"></div><span class="dl" data-files="etf_daily"></span></div>
+    </div>
+    <p class="note" data-i18n="sm.note"></p>
+    <div class="sms chart loading" id="sm-box" style="min-height: 200px"></div>
+  </section>
+
+  <section class="card" id="checks" data-nav="nav.ck">
+    <h2 data-i18n="ck.h2">与媒体报道核对</h2>
+    <p class="note" data-i18n="ck.note"></p>
+    <p class="ck-sum" id="ck-sum"></p>
+    <div class="tablebox">
+      <table class="table" id="ck-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="card" id="about" data-nav="nav.about">
+    <h2 data-i18n="a.h2">关于本页</h2>
+    <ol class="about">
+      <li data-i18n-html="a.what"></li>
+      <li data-i18n-html="a.src"></li>
+      <li data-i18n-html="a.pool"></li>
+      <li data-i18n-html="a.flow"></li>
+      <li data-i18n-html="a.signal"></li>
+      <li data-i18n-html="a.bounds"></li>
+      <li data-i18n-html="a.limits"></li>
+      <li data-i18n-html="a.checks"></li>
+      <li data-i18n-html="a.backtest"></li>
+    </ol>
+  </section>
+</main>
+
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+<script src="checks.js"></script>
+</body>
+</html>

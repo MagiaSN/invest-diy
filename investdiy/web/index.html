@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="common.home">投研工具箱</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gap); }
+  .tool { display: flex; flex-direction: column; gap: 8px; color: inherit; transition: border-color .15s; }
+  .tool:hover { text-decoration: none; border-color: var(--accent); }
+  .tool-top { display: flex; align-items: center; gap: 8px; }
+  .tool-kind { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--grid); color: var(--fg-muted); white-space: nowrap; }
+  .tool-title { font-size: 17px; font-weight: 600; }
+  .tool-desc { color: var(--fg-muted); font-size: 13px; line-height: 1.6; flex: 1; }
+  .tool-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: 12px; color: var(--fg-muted); border-top: 1px solid var(--line); padding-top: 8px; }
+  .tool-meta > span { white-space: nowrap; }
+  .tool-meta > .tool-url { color: var(--accent); white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+  <span class="topbar-right" data-i18n="home.server">本地服务 · investdiy/server.py</span>
+</div></header>
+
+<main class="page">
+  <h1 class="page-title" data-i18n="common.home">投研工具箱</h1>
+  <p class="lede" data-i18n="home.lede">本地看板与小工具。每个工具一个固定地址，数据由各自的更新命令生成。</p>
+  <section class="tools" id="tools"></section>
+</main>
+
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script>
+i18n.add({
+  zh: {
+    'home.server': '本地服务 · investdiy/server.py',
+    'home.snapshot': '静态快照 · 由本地更新后发布',
+    'home.lede': '本地看板与小工具。每个工具一个固定地址，数据由各自的更新命令生成。',
+    'home.empty': '还没有工具。',
+    'home.nodata': '尚无数据',
+    'home.error': '工具清单加载失败，确认服务器在运行。',
+  },
+  en: {
+    'home.server': 'Local server · investdiy/server.py',
+    'home.snapshot': 'Static snapshot · published from local updates',
+    'home.lede': 'Local dashboards and small tools. Each tool has a fixed address; its data comes from its own update command.',
+    'home.empty': 'No tools yet.',
+    'home.nodata': 'No data yet',
+    'home.error': 'Could not load the tool list. Check that the server is running.',
+  },
+});
+
+let tools = null;
+const box = document.getElementById('tools');
+
+function render() {
+  if (!tools) return;
+  if (!tools.length) { box.textContent = i18n.t('home.empty'); return; }
+  box.replaceChildren(...tools.map((t) => {
+    const m = t[i18n.lang] || t.zh;
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const a = el('a', 'card tool'); a.href = t.url;
+    const top = el('div', 'tool-top');
+    top.append(el('span', 'tool-title', m.title), el('span', 'tool-kind', m.kind));
+    const meta = el('div', 'tool-meta');
+    meta.append(el('span', null, t.asof ? i18n.t('common.asof', { d: t.asof }) : i18n.t('home.nodata')),
+      el('span', 'tool-url', t.url));
+    meta.lastChild.title = location.host + t.url;
+    a.append(top, el('div', 'tool-desc', m.description), meta);
+    return a;
+  }));
+}
+
+i18n.onChange(render);
+fetch('/api/tools.json').then((r) => r.json()).then((list) => { tools = list; render(); })
+  .catch(() => { box.textContent = i18n.t('home.error'); });
+</script>
+</body>
+</html>
