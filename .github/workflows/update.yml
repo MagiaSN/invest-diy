@@ -14,10 +14,10 @@ name: Update data and publish
 
 on:
   schedule:
-    # Beijing time; odd minutes because GitHub delays runs queued on the hour or half hour.
-    # 23:47 Mon-Fri: preliminary units for day T (SSE appeared at about 22:10 and SZSE at about 23:20 on 2026-10-28)
+    # cron is in UTC (Beijing = UTC+8); odd minutes because GitHub delays runs queued on the hour or half hour.
+    # 15:47 UTC = 23:47 Beijing, Mon-Fri: preliminary units for day T (SSE appeared at about 22:10 and SZSE at about 23:20 on 2026-10-28)
     - cron: "47 15 * * 1-5"
-    # 09:37 Tue-Sat: final units for day T, published on the morning of T+1 (the latest day is always refetched)
+    # 01:37 UTC = 09:37 Beijing, Tue-Sat: final units for day T, published on the morning of T+1 (the latest day is always refetched)
     - cron: "37 1 * * 2-6"
   workflow_dispatch:
     inputs:
