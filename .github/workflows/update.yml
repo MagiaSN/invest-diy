@@ -40,7 +40,7 @@ permissions:
 env:
   DOMAIN: invest-diy.surge.sh
   SURGE: surge@0.44.5   # pinned; only move to releases that have been out for at least two weeks
-  MAX_STALE_DAYS: "10"  # longer than the Spring Festival and National Day closures
+  MAX_STALE_DAYS: "10"  # longer than the Spring Festival and National Day closures; a TOOL dict can override it (max_stale_days)
 
 jobs:
   seed:
@@ -125,7 +125,10 @@ jobs:
           from datetime import date
           from investdiy.registry import discover
           from investdiy.server import tools_payload
-          new = {t["slug"]: t["asof"] for t in tools_payload(discover())}
+          tools = discover()
+          new = {t["slug"]: t["asof"] for t in tools_payload(tools)}
+          # monthly tools set a longer limit in their TOOL dict (max_stale_days)
+          limit = {slug: int(meta.get("max_stale_days", os.environ["MAX_STALE_DAYS"])) for slug, (_, meta) in tools.items()}
           try:
               with urllib.request.urlopen(f"https://{os.environ['DOMAIN']}/api/tools.json", timeout=30) as r:
                   live = {t["slug"]: t["asof"] for t in json.load(r)}
@@ -139,7 +142,7 @@ jobs:
                   errors.append(f"{slug} has no data")
               elif live.get(slug) and asof < live[slug]:
                   errors.append(f"{slug} is older than the live site ({asof} < {live[slug]})")
-              elif (date.today() - date.fromisoformat(asof)).days > int(os.environ["MAX_STALE_DAYS"]):
+              elif (date.today() - date.fromisoformat(asof)).days > limit[slug]:
                   errors.append(f"{slug} has not advanced since {asof}")
           if errors:
               sys.exit("; ".join(errors))

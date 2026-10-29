@@ -13,6 +13,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 | Tool | What it does |
 |---|---|
 | [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
+| [China PBoC Gold Reserves Tracker](docs/tools/cn-track-pboc-gold.md) | Tracks the People's Bank of China's official gold reserves month by month since 1977 (SAFE's monthly tables, with IMF data for the earlier history): holdings in tonnes and ounces, monthly additions, the buying streak and buying phases, and gold's value and share of official reserves. |
 
 ## Features
 
@@ -52,7 +53,7 @@ invest-diy/
 
 - [Architecture](docs/architecture.md): server, tool discovery, front-end kit, static export
 - [Development guide](docs/development.md): setup, conventions, adding a tool, static export
-- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md)
+- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [China PBoC Gold Reserves Tracker](docs/tools/cn-track-pboc-gold.md)
 
 ## Contributing
 
@@ -60,7 +61,7 @@ Issues and pull requests are welcome. Please read the [development guide](docs/d
 
 ## Disclaimer
 
-The data comes from public sources (stock exchanges, fund periodic reports, market data providers) and may contain errors, omissions or delays. Attributions such as "national-team buying" are inferences from public data, not official confirmations. Nothing in this project is investment advice.
+The data comes from public sources (stock exchanges, fund periodic reports, official statistics, market data providers) and may contain errors, omissions or delays. Attributions such as "national-team buying" are inferences from public data, not official confirmations. Nothing in this project is investment advice.
 
 The repository contains no market data; each tool fetches it from the original providers when you run it. Check the providers' terms before redistributing fetched data.
 

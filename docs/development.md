@@ -36,7 +36,7 @@ Tools that fetch data on a schedule and show trends and signals are named "marke
 | package | `<market>_track_<topic>` | `ashare_track_national_team_etf` |
 | `slug` | package name with hyphens | `ashare-track-national-team-etf` |
 
-Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States), `kr` (Korea), `global` (cross-market). Starting with the market keeps tools of the same market together; `_track_` leaves room for other kinds of tools.
+Market codes: `ashare` (China A-shares), `cn` (China, outside the stock market: macro and official data such as the central bank's reserves), `hk` (Hong Kong), `us` (United States), `kr` (Korea), `global` (cross-market). Starting with the market keeps tools of the same market together; `_track_` leaves room for other kinds of tools.
 
 ## Adding a tool
 
@@ -53,6 +53,7 @@ Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States),
        "kind_en": "Tracker",
        "update": "python -m investdiy.<package>",
        "asof_file": "data/out/xxx.csv",        # optional: first row's as_of column, shown as "data as of"
+       "max_stale_days": 45,                   # optional: days before the scheduled update fails on stale data (default 10; for monthly data)
    }
    ```
 
@@ -97,5 +98,5 @@ cd investdiy/dist && python3 -m http.server           # preview
   gh workflow run update.yml -f seed=true
   gh release delete seed-data --yes        # after the run has saved the cache
   ```
-- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (or the tool's `max_stale_days`, such as 45 for monthly data) (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
 - **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.
