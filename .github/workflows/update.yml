@@ -1,5 +1,5 @@
-# Daily update in two jobs run one after the other:
-#   update   fetch every tool's data, check its dates and export the static site (uploaded as an artifact)
+# Routine update in two jobs run one after the other:
+#   update   fetch tools due for an update, check dates and export the static site (uploaded as an artifact)
 #   publish  publish that export to surge.sh
 #
 # Data is not committed, so investdiy/*/data/ is carried between runs in the Actions cache.
@@ -15,10 +15,12 @@ name: Update data and publish
 on:
   schedule:
     # cron is in UTC (Beijing = UTC+8); odd minutes because GitHub delays runs queued on the hour or half hour.
-    # 15:47 UTC = 23:47 Beijing, Mon-Fri: preliminary units for day T (SSE appeared at about 22:10 and SZSE at about 23:20 on 2026-10-28)
+    # 15:47 UTC = 23:47 Beijing, Mon-Fri: preliminary ETF units.
     - cron: "47 15 * * 1-5"
     # 01:37 UTC = 09:37 Beijing, Tue-Sat: final units for day T, published on the morning of T+1 (the latest day is always refetched)
     - cron: "37 1 * * 2-6"
+    # Gold releases: 23:53 Beijing on the 7th, conditional retries on the 8th-10th, revision check on the 15th.
+    - cron: "53 15 7-10,15 * *"
   workflow_dispatch:
     inputs:
       publish:
@@ -40,7 +42,7 @@ permissions:
 env:
   DOMAIN: invest-diy.surge.sh
   SURGE: surge@0.44.5   # pinned; only move to releases that have been out for at least two weeks
-  MAX_STALE_DAYS: "10"  # longer than the Spring Festival and National Day closures
+  MAX_STALE_DAYS: "10"  # longer than the Spring Festival and National Day closures; a TOOL dict can override it (max_stale_days)
 
 jobs:
   seed:
@@ -79,7 +81,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: investdiy/*/data
-          key: data-${{ github.run_id }}
+          key: data-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: data-
 
       - if: inputs.seed
@@ -91,14 +93,34 @@ jobs:
         if: inputs.seed
         run: tar xzf seed.tar.gz && rm seed.tar.gz
 
-      - name: Update every tool
+      - name: Update tools due for refresh
         id: update
+        env:
+          UPDATE_EVENT: ${{ github.event_name }}
+          UPDATE_SCHEDULE: ${{ github.event.schedule }}
         run: |
           python - <<'EOF'
-          import subprocess, sys
+          import os, subprocess, sys
+          from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
           from investdiy.registry import discover
+          today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+          target = (today.replace(day=1) - timedelta(days=1)).isoformat()
+          manual = os.environ["UPDATE_EVENT"] == "workflow_dispatch"
+          monthly_run = os.environ.get("UPDATE_SCHEDULE") == "53 15 7-10,15 * *"
           failed = []
-          for tool, _ in discover().values():
+          for tool, meta in discover().values():
+              asof = tool.asof(meta)
+              gold = tool.slug == "cn-track-pboc-gold"
+              # Always rebuild missing outputs after cache eviction; manual runs force every tool.
+              bootstrap = not asof or not all((tool.data / name).exists() for name in
+                  (["kpi.csv", "monthly.csv", "annual.csv", "phases.csv"] if gold else []))
+              due = manual or bootstrap or (
+                  monthly_run and gold and (today.day in (7, 15) or asof < target)
+              ) or (not monthly_run and not gold)
+              if not due:
+                  print(f"{tool.slug}: cached through {asof}; no fetch due", flush=True)
+                  continue
               cmd = [sys.executable, "-m", tool.update.split()[-1]]
               print(f"::group::{tool.slug}", flush=True)
               if subprocess.run(cmd).returncode != 0:
@@ -114,7 +136,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: investdiy/*/data
-          key: data-${{ github.run_id }}
+          key: data-${{ github.run_id }}-${{ github.run_attempt }}
 
       # never publish data older than what is live (e.g. a fresh cache whose backfill failed);
       # fail the run when data stops advancing, since fetch errors are logged but do not fail the update
@@ -125,7 +147,10 @@ jobs:
           from datetime import date
           from investdiy.registry import discover
           from investdiy.server import tools_payload
-          new = {t["slug"]: t["asof"] for t in tools_payload(discover())}
+          tools = discover()
+          new = {t["slug"]: t["asof"] for t in tools_payload(tools)}
+          # monthly tools set a longer limit in their TOOL dict (max_stale_days)
+          limit = {slug: int(meta.get("max_stale_days", os.environ["MAX_STALE_DAYS"])) for slug, (_, meta) in tools.items()}
           try:
               with urllib.request.urlopen(f"https://{os.environ['DOMAIN']}/api/tools.json", timeout=30) as r:
                   live = {t["slug"]: t["asof"] for t in json.load(r)}
@@ -133,14 +158,20 @@ jobs:
               print(f"::warning::cannot read the live site ({exc}); skipping the comparison")
               live = {}
           errors = []
+          summary = ["## Data freshness", "", "| Tool | Updated through | Live site | Maximum age (days) |", "|---|---|---|---|"]
           for slug, asof in new.items():
+              summary.append(f"| {slug} | {asof or 'missing'} | {live.get(slug) or 'unknown'} | {limit[slug]} |")
               print(f"{slug}: new {asof}, live {live.get(slug)}")
               if not asof:
                   errors.append(f"{slug} has no data")
               elif live.get(slug) and asof < live[slug]:
                   errors.append(f"{slug} is older than the live site ({asof} < {live[slug]})")
-              elif (date.today() - date.fromisoformat(asof)).days > int(os.environ["MAX_STALE_DAYS"]):
+              elif (date.today() - date.fromisoformat(asof)).days > limit[slug]:
                   errors.append(f"{slug} has not advanced since {asof}")
+          if errors:
+              summary.extend(["", "Validation failed:", *[f"- {error}" for error in errors]])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as report:
+              report.write("\n".join(summary) + "\n")
           if errors:
               sys.exit("; ".join(errors))
           EOF

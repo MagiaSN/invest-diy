@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="page.title">中国央行黄金储备数据跟踪</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .take { display: flex; flex-direction: column; gap: 4px; }
+  #ph-table th:nth-child(-n+3), #ph-table td:nth-child(-n+3) { text-align: left; }
+  #ph-table .pill { margin-left: 6px; color: var(--up); }
+  .about { margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.85; max-width: 92ch; display: flex; flex-direction: column; gap: 6px; }
+  .about b { color: var(--fg); font-weight: 600; }
+</style>
+</head>
+<body>
+<!-- every static text has a data-i18n key (see strings.js); the Chinese inside tags is only a placeholder until scripts load -->
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title" data-i18n="page.title">中国央行黄金储备数据跟踪</span>
+    <span class="topbar-right" id="asof"></span>
+  </div>
+  <nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav>
+</header>
+
+<main class="page">
+  <div class="take">
+    <h1 class="page-title" data-i18n="page.title">中国央行黄金储备数据跟踪</h1>
+    <p class="stale" id="stale" hidden></p>
+    <p class="lede" id="take-now">加载中…</p>
+    <p class="lede" id="take-src"></p>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><span class="kpi-label" data-i18n="k.hold">黄金储备</span><span class="kpi-value" id="k-hold">—</span><span class="kpi-sub" id="k-hold-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.chg">当月增减</span><span class="kpi-value" id="k-chg">—</span><span class="kpi-sub" id="k-chg-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.streak">连续增持</span><span class="kpi-value" id="k-streak">—</span><span class="kpi-sub" id="k-streak-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.ytd">今年以来</span><span class="kpi-value" id="k-ytd">—</span><span class="kpi-sub" id="k-ytd-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.value">黄金储备价值</span><span class="kpi-value" id="k-value">—</span><span class="kpi-sub" id="k-value-sub">—</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="k.price">隐含金价（每盎司）</span><span class="kpi-value" id="k-price">—</span><span class="kpi-sub" id="k-price-sub">—</span></div>
+  </section>
+
+  <section class="card" id="holdings" data-nav="nav.hold">
+    <div class="card-head">
+      <h2 data-i18n="hold.h2">黄金储备持有量</h2>
+      <div class="card-tools"><div id="hold-range"></div><span class="dl" data-files="monthly"></span></div>
+    </div>
+    <p class="note" data-i18n="hold.note"></p>
+    <div class="legend" id="hold-legend"></div>
+    <div class="chart loading" id="hold-box" style="min-height: 320px"></div>
+  </section>
+
+  <section class="card" id="changes" data-nav="nav.chg">
+    <div class="card-head">
+      <h2 data-i18n="chg.h2">每月增减</h2>
+      <div class="card-tools"><div id="chg-range"></div><span class="dl" data-files="monthly"></span></div>
+    </div>
+    <p class="note" data-i18n="chg.note"></p>
+    <div class="legend" id="chg-legend"></div>
+    <div class="chart loading" id="chg-box" style="min-height: 240px"></div>
+  </section>
+
+  <section class="card" id="annual" data-nav="nav.year">
+    <div class="card-head">
+      <h2 data-i18n="year.h2">年度增减</h2>
+      <div class="card-tools"><div id="year-range"></div><span class="dl" data-files="annual"></span></div>
+    </div>
+    <p class="note" data-i18n="year.note"></p>
+    <div class="chart loading" id="year-box" style="min-height: 240px"></div>
+  </section>
+
+  <section class="card" id="value" data-nav="nav.value">
+    <div class="card-head">
+      <h2 data-i18n="val.h2">储备价值与黄金占比</h2>
+      <div class="card-tools"><span class="dl" data-files="monthly"></span></div>
+    </div>
+    <p class="note" data-i18n="val.note"></p>
+    <div class="grid2">
+      <div>
+        <div class="card-head"><span class="note" data-i18n="val.usd"></span><div id="usd-range"></div></div>
+        <div class="chart loading" id="usd-box" style="min-height: 260px"></div>
+      </div>
+      <div>
+        <div class="card-head"><span class="note" data-i18n="val.share"></span><div id="share-range"></div></div>
+        <div class="chart loading" id="share-box" style="min-height: 260px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="phases" data-nav="nav.ph">
+    <div class="card-head">
+      <h2 data-i18n="ph.h2">增持阶段与历次披露</h2>
+      <div class="card-tools"><span class="dl" data-files="phases"></span></div>
+    </div>
+    <p class="note" data-i18n="ph.note"></p>
+    <div class="tablebox">
+      <table class="table" id="ph-table">
+        <thead><tr>
+          <th data-i18n="ph.kind"></th><th data-i18n="ph.start"></th><th data-i18n="ph.end"></th><th data-i18n="ph.months"></th>
+          <th data-i18n="ph.addMonths"></th><th data-i18n="ph.added"></th><th data-i18n="ph.addedOz"></th><th data-i18n="ph.endT"></th>
+          <th data-i18n="ph.cost"></th><th data-i18n="ph.avg"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="about" data-nav="nav.about">
+    <div class="card-head">
+      <h2 data-i18n="a.h2">关于本页</h2>
+      <div class="card-tools"><span class="dl" data-files="compare"></span></div>
+    </div>
+    <ol class="about">
+      <li data-i18n-html="a.what"></li>
+      <li data-i18n-html="a.src"></li>
+      <li data-i18n-html="a.merge"></li>
+      <li id="a-check"></li>
+      <li data-i18n-html="a.calc"></li>
+      <li data-i18n-html="a.phase"></li>
+      <li data-i18n-html="a.limits"></li>
+    </ol>
+  </section>
+</main>
+
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

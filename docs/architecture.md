@@ -16,7 +16,7 @@ export (investdiy/export.py) ► investdiy/dist/                static snapshot 
 - its `__init__.py` defines a `TOOL` dict, and
 - it has `web/index.html`.
 
-`TOOL` holds the slug (the URL segment), titles, descriptions and kinds in Chinese and English, the update command, and optionally `asof_file`, a CSV whose first row has an `as_of` column shown on the home page as "data as of". Slugs must be unique and cannot be `api`, `static`, `common` or `web`.
+`TOOL` holds the slug (the URL segment), titles, descriptions and kinds in Chinese and English, the update command, and optionally `asof_file`, a CSV whose first row has an `as_of` column shown on the home page as "data as of", and `max_stale_days`, how old that date may get before the scheduled update fails (default 10, longer for monthly data). Slugs must be unique and cannot be `api`, `static`, `common` or `web`.
 
 Discovery runs once when the server starts, so a new tool or a changed `TOOL` dict needs a server restart. Page files and data files are read on every request.
 
@@ -66,7 +66,7 @@ Main `kit` components:
 - `kit.rangePicker(el, {min, max, initial, onChange})`: a per-chart range selector (1Y / 3Y / 5Y / All / custom); `.get()` returns `[start, end]`
 - `kit.sectionNav(el)`: section links built from every `<section>` with an `id` and `data-nav="<dictionary key>"`
 - `kit.downloadLinks(base)`: renders `<span class="dl" data-files="a b">` as CSV download links, labelled by the page's `file.<name>` i18n keys
-- `kit.markStale(el, asof)`: shows a notice when the data is three or more weekdays old
+- `kit.markStale(el, asof, minDays = 3)`: shows a notice when the data is `minDays` or more weekdays old (monthly tools pass a longer threshold)
 - `kit.tip(card)`: a tooltip positioned inside a card
 - `kit.onRedraw(fn)`: calls `fn` on resize, colour-scheme change and language switch
 

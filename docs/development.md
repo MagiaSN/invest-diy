@@ -36,7 +36,7 @@ Tools that fetch data on a schedule and show trends and signals are named "marke
 | package | `<market>_track_<topic>` | `ashare_track_national_team_etf` |
 | `slug` | package name with hyphens | `ashare-track-national-team-etf` |
 
-Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States), `kr` (Korea), `global` (cross-market). Starting with the market keeps tools of the same market together; `_track_` leaves room for other kinds of tools.
+Market codes: `ashare` (China A-shares), `cn` (China, outside the stock market: macro and official data such as the central bank's reserves), `hk` (Hong Kong), `us` (United States), `kr` (Korea), `global` (cross-market). Starting with the market keeps tools of the same market together; `_track_` leaves room for other kinds of tools.
 
 ## Adding a tool
 
@@ -53,6 +53,7 @@ Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States),
        "kind_en": "Tracker",
        "update": "python -m investdiy.<package>",
        "asof_file": "data/out/xxx.csv",        # optional: first row's as_of column, shown as "data as of"
+       "max_stale_days": 45,                   # optional: days before the scheduled update fails on stale data (default 10; for monthly data)
    }
    ```
 
@@ -85,7 +86,12 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs twice a day, Beijing time: at 23:47 from Monday to Friday for the preliminary units of day T (SSE publishes them at about 22:10, SZSE at about 23:20), and at 09:37 from Tuesday to Saturday for the final units published on the morning of T+1. It can also be started by hand from the Actions tab ("Run workflow", optionally without publishing).
+`.github/workflows/update.yml` runs tools due for refresh, checks every tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
+
+- **ETF**: 23:47 Monday-Friday for preliminary units of day T, and 09:37 Tuesday-Saturday for final units published on T+1 (Beijing time).
+- **Gold**: 23:53 on the 7th of each month, retries on the 8th-10th only while the previous month's figures are missing, and an unconditional revision check on the 15th. These runs include weekends; ETF fetching is skipped on the gold schedule.
+- **Manual and bootstrap**: "Run workflow" forces all tools to update, optionally without publication. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
+
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
 - **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer.
@@ -97,5 +103,6 @@ cd investdiy/dist && python3 -m http.server           # preview
   gh workflow run update.yml -f seed=true
   gh release delete seed-data --yes        # after the run has saved the cache
   ```
-- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Run summary**: the Actions summary lists every tool's updated date, live date and maximum allowed age. Reruns save a separate cache so a retry can retain newly fetched data.
+- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (or the tool's `max_stale_days`, such as 45 for monthly data) (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
 - **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.

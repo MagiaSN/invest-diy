@@ -206,8 +206,9 @@
       i18n.onChange(render);
     },
 
-    /** Stale-data notice: shown when 3 or more weekdays separate the data date from today (holidays are not excluded, hence "about") */
-    markStale(el, asof) {
+    /** Stale-data notice: shown when minDays or more weekdays separate the data date from today (holidays are not excluded,
+        hence "about"). Daily data uses the default of 3; tools with monthly data pass a longer threshold */
+    markStale(el, asof, minDays = 3) {
       const show = () => {
         const d0 = new Date(`${asof}T00:00:00Z`);
         const today = new Date();
@@ -215,7 +216,7 @@
         for (let d = d3.utcDay.offset(d0, 1); d < d3.utcDay.floor(today); d = d3.utcDay.offset(d, 1)) {
           if (d.getUTCDay() % 6 !== 0) n += 1;
         }
-        el.hidden = n < 3;
+        el.hidden = n < minDays;
         el.textContent = i18n.t('common.stale', { d: asof, n });
       };
       show();
