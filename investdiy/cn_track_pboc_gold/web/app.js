@@ -57,9 +57,9 @@
 
   // ---------------- shared chart frame ----------------
   /** svg + x (time) / y (linear) axes; returns {svg, x, y, W, H, m} */
-  function frame(box, rows, { H, yDomain, yFmt, xPad = 0 }) {
+  function frame(box, rows, { H, yDomain, yFmt, xPad = 0, rightMargin = 14 }) {
     kit.ready(box);
-    const W = Math.max(280, box.clientWidth), m = { t: 10, r: 14, b: 26, l: 56 };
+    const W = Math.max(280, box.clientWidth), m = { t: 10, r: rightMargin, b: 26, l: 56 };
     const [d0, d1] = d3.extent(rows, (r) => r.d);
     const x = d3.scaleUtc([d0, xPad ? d3.utcMonth.offset(d1, xPad) : d1], [m.l, W - m.r]);
     const y = d3.scaleLinear(yDomain, [H - m.b, m.t]).nice();
@@ -127,13 +127,15 @@
     $('hold-legend').replaceChildren(legendItem('var(--s2)', t('hold.lgLine'), true), legendItem(up, t('hold.lgBand')));
   }
 
-  // ---------------- monthly changes (bars, tonnes) ----------------
+  // ---------------- monthly changes (tonnes) and implied gold price (USD/oz) ----------------
   function drawChanges() {
     const box = $('chg-box'), card = $('changes');
     const rows = D.monthly.filter(inRange(R.chg.get()));
     if (rows.length < 2) { kit.fail(box); return; }
+    const hasPrice = (r) => r.market && Number.isFinite(r.price) && r.price > 0;
+    const prices = rows.filter(hasPrice);
     const ext = d3.extent([0, ...rows.map((r) => r.chgT)]);
-    const fr = frame(box, rows, { H: 240, yDomain: ext, yFmt: d3.format(','), xPad: 1 });
+    const fr = frame(box, rows, { H: 240, yDomain: ext, yFmt: d3.format(','), xPad: 1, rightMargin: prices.length ? 64 : 14 });
     const { svg, x, y } = fr;
     const bw = Math.max(1, (x(d3.utcMonth.offset(rows[0].d, 1)) - x(rows[0].d)) - 1);
     svg.append('g').selectAll('rect').data(rows.filter((r) => r.chgOz !== 0)).join('rect')
@@ -143,7 +145,27 @@
     svg.append('line').attr('x1', fr.m.l).attr('x2', fr.W - fr.m.r).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--axis)');
     // bars start at the month: shift the hover rows to the bar centres
     const mid = rows.map((r) => ({ ...r, d: x.invert(x(r.d) + bw / 2) }));
-    hover(fr, card, mid, monthTip);
+    if (prices.length) {
+      const priceY = d3.scaleLinear([0, d3.max(prices, (r) => r.price)], [fr.H - fr.m.b, fr.m.t]).nice();
+      const axis = svg.append('g').attr('transform', `translate(${fr.W - fr.m.r},0)`)
+        .call(d3.axisRight(priceY).ticks(6).tickFormat(d3.format(',')).tickSizeOuter(0));
+      kit.axisStyle(axis);
+      axis.selectAll('text').style('fill', 'var(--s1)');
+      svg.append('path').datum(mid)
+        .attr('d', d3.line().defined(hasPrice).x((r) => x(r.d)).y((r) => priceY(r.price)))
+        .style('fill', 'none').style('stroke', 'var(--s1)').style('stroke-width', 2)
+        .style('stroke-linejoin', 'round');
+    }
+    hover(fr, card, mid, (r) => {
+      const lines = monthTip(r);
+      if (hasPrice(r)) lines.splice(3, 0, { text: t('tip.price', { p: fmtPrice(r.price) }), color: 'var(--s1)' });
+      return lines;
+    });
+    $('chg-legend').replaceChildren(
+      legendItem('var(--up)', t('chg.lgUp')),
+      legendItem('var(--down)', t('chg.lgDown')),
+      ...(prices.length ? [legendItem('var(--s1)', t('chg.lgPrice'), true)] : []),
+    );
   }
 
   // ---------------- by year (bars, tonnes) ----------------

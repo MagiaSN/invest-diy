@@ -33,7 +33,8 @@ i18n.add({
 
     // monthly changes
     'chg.h2': '每月增减',
-    'chg.note': '每月末较上月末的变化（吨），红为增持，绿为减少。2015-06 之前的柱为一次性披露，不代表当月买入；1980 年之前 IMF 为季度数据。',
+    'chg.lgUp': '增持（左轴：吨）', 'chg.lgDown': '减少（左轴：吨）', 'chg.lgPrice': '隐含金价（右轴：美元/盎司）',
+    'chg.note': '每月末较上月末的变化（吨），红为增持，绿为减少（左轴）。曲线为月末隐含金价（右轴，美元/盎司），按黄金储备价值 ÷ 盎司数计算，仅展示 2015-06 起的市价估值数据。2015-06 之前的柱为一次性披露，不代表当月买入；1980 年之前 IMF 为季度数据。',
 
     // annual
     'year.h2': '年度增减',
@@ -97,7 +98,8 @@ i18n.add({
     'tip.hold': 'Holding {t} · {oz}', 'tip.chg': 'Change {t} ({oz})', 'tip.src.imf': 'Source: IMF', 'tip.src.safe': 'Source: SAFE',
 
     'chg.h2': 'Monthly changes',
-    'chg.note': 'Change from the previous month-end (tonnes); red is an addition, green a decrease. Bars before 2015-06 are one-off disclosures, not that month\'s purchases; IMF data is quarterly before 1980.',
+    'chg.lgUp': 'Addition (left: t)', 'chg.lgDown': 'Decrease (left: t)', 'chg.lgPrice': 'Implied gold price (right: USD/oz)',
+    'chg.note': 'Change from the previous month-end (tonnes); red is an addition, green a decrease (left axis). The line is the month-end implied gold price (right axis, USD/oz), calculated as reserve value ÷ ounces using market valuations from 2015-06. Bars before 2015-06 are one-off disclosures, not that month\'s purchases; IMF data is quarterly before 1980.',
 
     'year.h2': 'Changes by year',
     'year.note': 'Net change per year (tonnes). 2015 includes the 604 t disclosed in June; the current, incomplete year is drawn lighter. Hover for the number of months with additions and the year-end holding.',

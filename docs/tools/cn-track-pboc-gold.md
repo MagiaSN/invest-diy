@@ -31,6 +31,12 @@ SAFE publishes the figures for month M around the 7th of month M+1 (for example 
 | `analyze.py` | merges the two, computes changes, phases, years and headline figures → `data/out/*.csv` |
 | `web/` | dashboard (`index.html`, `strings.js`, `app.js`) |
 
+## Scheduled updates
+
+The shared [GitHub Actions workflow](../../.github/workflows/update.yml) refreshes gold at 23:53 Beijing time on the 7th of each month, including weekends. It retries at the same time on the 8th-10th only if the previous month's figures are still missing, and checks again unconditionally on the 15th for delayed releases or revisions. ETF runs reuse cached gold output. Manual runs force a refresh; missing output is rebuilt on any run after cache eviction.
+
+Each run restores cached source data, fetches and computes the latest figures, validates freshness, exports the whole site and publishes it to Surge. Publication stops if any tool fails or its data regresses; this tool allows a maximum data age of 45 days. The Actions summary shows the updated and live dates. Manual runs support disabling publication for inspection; the exported site is retained as an artifact for seven days. See [setup and credentials](../development.md#scheduled-updates).
+
 ## Data sources
 
 All sources are free and need no login.
