@@ -45,6 +45,7 @@ Market codes: `ashare` (China A-shares), `cn` (China, outside the stock market: 
    ```python
    TOOL = {
        "slug": "ashare-track-xxx",             # URL segment; not api / static / common / web
+       "visibility": "local",                # local (default) or public; only public tools are exported
        "title": "A股xxx数据跟踪",
        "description": "一句话说明",
        "kind": "数据跟踪",
@@ -60,7 +61,7 @@ Market codes: `ashare` (China A-shares), `cn` (China, outside the stock market: 
 2. Add `__main__.py` so that `python -m investdiy.<package>` fetches and recomputes everything, writing page data to `data/out/`.
 3. Add `web/index.html` with the shared assets in the order listed in [Architecture](architecture.md#front-end-kit), plus `web/strings.js` (dictionary) and `web/app.js` (page code). Read data with relative paths, e.g. `kit.csv('data/xxx.csv')`.
 4. Reuse shared helpers with relative imports: `from ..common import net, market, fund_reports`.
-5. Restart the server; the home page lists the new tool automatically.
+5. Choose `visibility`: use `"local"` for local access only, or explicitly set `"public"` to include the tool in static exports and the Surge update/publish workflow. Missing visibility defaults to local; unknown values fail discovery. Restart the server; the home page lists the tool with its visibility badge.
 6. Document the tool in `docs/tools/<slug>.md` (method, data sources, validation, limitations) and add it to the tools table in `README.md`.
 
 Further pages of the same tool sit next to `index.html` (for example `web/backtest.html`, served at `/<slug>/backtest.html`).
@@ -73,7 +74,7 @@ Further pages of the same tool sit next to `index.html` (for example `web/backte
 
 ## Static export
 
-The site can be exported as static files and served by any static file host:
+Only tools with `TOOL["visibility"] = "public"` are exported as static files for Surge or another static host. The local server continues to serve both public and local tools:
 
 ```bash
 .venv/bin/python3 -m investdiy.export                 # export to investdiy/dist/
@@ -81,8 +82,10 @@ The site can be exported as static files and served by any static file host:
 cd investdiy/dist && python3 -m http.server           # preview
 ```
 
-- The snapshot is static: run each tool's update command first, then export.
-- The export includes each tool's `data/out/` CSV files. Check the data providers' terms before hosting it publicly.
+- The snapshot is static: run each public tool's update command first, then export.
+- The export includes public tools' pages, scripts and `data/out/` CSV files only. Local tools are also absent from `/api/tools.json`; direct URLs to their pages or data cannot resolve in the export.
+- Rebuilding clears the previous export, including tools newly marked local. Source directories and local data are retained. The maintainer's `local/publish.py` uses this same filtered exporter.
+- A visibility change affects the hosted site only after the next deployment. Merely exporting does not change an existing Surge deployment.
 
 ## Scheduled updates
 
@@ -96,7 +99,7 @@ Only tools explicitly marked `visibility: public` enter the public export and pu
 
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
-- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer.
+- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer. Local tools such as the freight tracker are not updated by this publication workflow. The freight tracker has a separate [SSE collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection), with encrypted history artifacts and no publishing job. Local data folders still need independent backups.
 - **Seeding from local data**: to skip the backfill, upload local data to a draft release (drafts are visible only to collaborators and create no tag), run the workflow by hand with "seed" checked, then delete the release:
 
   ```bash
