@@ -2,7 +2,7 @@
 
 **English** | [简体中文](docs/i18n/README.zh-CN.md)
 
-A small toolbox of self-hosted market dashboards built entirely on public data. Each tool fetches data, computes indicators and serves a bilingual (English / Chinese) web page from a local server; the whole site can also be exported as a static snapshot.
+A small toolbox of self-hosted market dashboards built entirely on public data. Each tool fetches data, computes indicators and serves a bilingual (English / Chinese) web page from a local server; public tools can also be exported as a static snapshot, while local tools stay on your machine.
 
 Live snapshot: <https://invest-diy.surge.sh/>
 
@@ -10,17 +10,17 @@ Live snapshot: <https://invest-diy.surge.sh/>
 
 ## Tools
 
-| Tool | What it does |
-|---|---|
-| [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
-| [Global Container Freight Tracker](docs/tools/global-track-container-freight.md) | Collects the weekly container freight indices of the Shanghai Shipping Exchange: the CCFI (composite and 12 trade lanes), the SCFI composite and the SCFIS settlement index for Europe and the US West Coast, with sparse earlier history from web archive snapshots. |
+| Tool | Visibility | What it does |
+|---|---|---|
+| [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Public | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
+| [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md) | Local only | Tracks all 24 SSE shipping index sections and their components, including container, bulk, tanker, schedule reliability, trade and crew data, with latest periods, units and source update status. |
 
 ## Features
 
 - **No framework, no build step**: a standard-library Python HTTP server and plain HTML / JavaScript pages
 - **Fully local front end**: charts use a vendored copy of d3; pages load nothing from CDNs
 - **Bilingual pages**: every page ships English and Chinese text and picks one from the browser language, with a switch in the top bar
-- **Static export**: one command exports the whole site as static files that any static host can serve
+- **Static export**: one command exports only explicitly public tools; local pages and data are excluded
 - **Pluggable tools**: a tool is a Python sub-package with a metadata dict and a `web/` folder; the home page discovers it automatically
 
 ## Quick start
@@ -53,7 +53,7 @@ invest-diy/
 
 - [Architecture](docs/architecture.md): server, tool discovery, front-end kit, static export
 - [Development guide](docs/development.md): setup, conventions, adding a tool, static export
-- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [Global Container Freight Tracker](docs/tools/global-track-container-freight.md)
+- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md)
 
 ## Contributing
 

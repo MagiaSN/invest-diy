@@ -1,8 +1,7 @@
-"""The indices and series tracked, with the labels used to find them in the Shanghai Shipping Exchange pages.
+"""SSE index catalog and stable keys for the original container series.
 
-Every index is in points. Bases: CCFI 1998-01-01 = 1000, SCFI 2009-10-16 = 1000, SCFIS 2020-06-01 = 1000.
-Each series is matched by the first keyword contained in a table row's first cell (Chinese label), so a
-more specific keyword must come before a shorter one that it contains.
+Additional components and their units are discovered from each official page.
+The legacy keys keep previously collected history compatible.
 """
 
 from __future__ import annotations
@@ -37,11 +36,39 @@ INDEX_NAMES = {   # index -> (Chinese, English)
     "ccfi": ("中国出口集装箱运价指数", "China Containerized Freight Index"),
     "scfi": ("上海出口集装箱运价指数", "Shanghai Containerized Freight Index"),
     "scfis": ("上海出口集装箱结算运价指数", "Shanghai Containerized Freight Index (Settlement)"),
+    "cicfi": ("中国进口集装箱运价指数", "China Import Containerized Freight Index"),
+    "twfi": ("台湾海峡两岸间集装箱运价指数", "Cross-Strait Containerized Freight Index"),
+    "seafi": ("东南亚集装箱运价指数", "Southeast Asia Containerized Freight Index"),
+    "gcspi": ("全球主干航线准班率", "Global Trade Lane Schedule Reliability"),
+    "gcspi_ca": ("班轮公司及联盟准班率", "Carrier and Alliance Schedule Reliability"),
+    "gcspi_port": ("港口班轮准班率", "Port Schedule Reliability"),
+    "cbfi": ("中国沿海散货运价指数", "China Coastal Bulk Freight Index"),
+    "cbcfi": ("中国沿海煤炭运价指数", "China Coastal Coal Freight Index"),
+    "cbofi": ("中国沿海金属矿石运价指数", "China Coastal Metallic Ore Freight Index"),
+    "cbgfi": ("中国沿海粮食运价指数", "China Coastal Grain Freight Index"),
+    "cctfi_coastal": ("中国沿海成品油运价指数", "China Coastal Tanker Freight Index"),
+    "cdi": ("中国沿海散货船舶日租金指数", "China Coastal Bulk Ship Daily Hire Index"),
+    "fdi": ("远东干散货指数", "Far East Dry Bulk Index"),
+    "cdfi": ("中国进口干散货运价指数", "China Import Dry Bulk Freight Index"),
+    "ctfi": ("中国进口原油运价指数", "China Import Crude Oil Tanker Freight Index"),
+    "csi": ("中国（上海）进口贸易海运指数", "China (Shanghai) Seaborne Import Index"),
+    "brsti": ("“一带一路”航贸指数", "Belt and Road Shipping and Trade Index"),
+    "brtvi": ("“一带一路”贸易额指数", "Belt and Road Trade Value Index"),
+    "brcvi": ("“一带一路”集装箱海运量指数", "Belt and Road Container Volume Index"),
+    "srfi": ("“海上丝绸之路”运价指数", "Maritime Silk Road Freight Index"),
+    "ccri": ("中国（上海）国际海员薪酬指数", "China Crew Remuneration Index"),
 }
+
+MONTHLY = {"gcspi", "gcspi_ca", "gcspi_port", "csi", "brsti", "brtvi", "brcvi", "srfi", "ccri"}
+DAILY = {"cbcfi", "cdi", "cdfi", "fdi", "ctfi"}
+
+
+def frequency(index: str) -> str:
+    return "monthly" if index in MONTHLY else "daily" if index in DAILY else "weekly"
 
 
 def match_series(index: str, label: str) -> str | None:
-    for key, word, *_ in SERIES[index]:
+    for key, word, *_ in SERIES.get(index, []):
         if word in label:
             return key
     return None

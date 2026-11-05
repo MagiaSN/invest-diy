@@ -98,7 +98,7 @@
     axisStyle: (...gs) => gs.forEach((g) => g.attr('font-size', null).attr('font-family', null)),
 
     /** Range picker (one per chart): 1Y / 3Y / 5Y / All / custom start and end dates.
-        min / max are the first and last data dates (UTC Date); returns {get()} -> [start, end] and calls
+        min / max are the first and last data dates (UTC Date); returns {get(), destroy()} (get returns [start, end]) and calls
         onChange when the range changes */
     rangePicker(host, { min, max, initial = '1y', onChange }) {
       const iso = d3.utcFormat('%Y-%m-%d');
@@ -155,7 +155,10 @@
       }
       i18n.onChange(render);
       render();
-      return { get: range };
+      return {
+        get: range,
+        destroy() { document.removeEventListener('langchange', render); host.replaceChildren(); },
+      };
     },
 
     /** Section navigation: links every section with an id and data-nav="<dictionary key>", highlighting the current one on scroll */

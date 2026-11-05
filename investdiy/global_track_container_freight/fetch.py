@@ -1,12 +1,10 @@
 """Collect weekly freight index observations into data/observations.csv.
 
 Sources:
-  - Shanghai Shipping Exchange (www.sse.net.cn), public pages, no login:
-      singleIndex?indexType=ccfi   CCFI composite and 12 lanes, current and previous period (published on Fridays)
-      singleIndex?indexType=scfi   SCFI composite, current and previous period (lane rates need a subscription)
-      scfisTrace                   SCFIS Europe and US West Coast, last four periods (published on Mondays)
-    Earlier periods (single-date queries, the multi-period query) require a paid SSE account, so history
-    builds up from the weekly runs.
+  - Shanghai Shipping Exchange (www.sse.net.cn): all 24 index sections and their
+    components, using the latest single-period pages plus the SCFIS trace page.
+    Empty/restricted cells remain empty. Optional SSE_COOKIE uses an existing
+    authorized session; cookies are never written to the output files.
   - Internet Archive Wayback Machine: snapshots of the same SSE pages since 2016 (a few dozen per index),
     parsed with the same code. They give sparse history before this tool started collecting.
   - The published copy of this tool's history.csv on the live site (env INVESTDIY_SITE, e.g.
@@ -29,13 +27,14 @@ import os
 import re
 import time
 from datetime import datetime, timezone
-from html.parser import HTMLParser
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from ..common import net
 from ..common.csvio import read_rows, write_rows
 from . import TOOL
-from .indices import SERIES, match_series
+from .indices import SERIES, INDEX_NAMES, frequency, match_series
+from .parse import CURRENT_FIELDS, Tables as _Tables, parse_page
 
 DATA = Path(__file__).resolve().parent / "data"
 OBS_CSV = DATA / "observations.csv"      # index,series,date,value,source
@@ -47,11 +46,16 @@ ARCHIVE_MAX_FAILURES = 3                  # failures in a row that end an archiv
 FIELDS = ["index", "series", "date", "value", "source"]
 
 SSE = "https://www.sse.net.cn"
-PAGES = {   # index -> [(page id, path)]; the first page of each index is fetched live
+ARCHIVE_PAGES = {   # historical snapshots are limited to the original three indices
     "ccfi": [("single", "/index/singleIndex?indexType=ccfi")],
     "scfi": [("single", "/index/singleIndex?indexType=scfi")],
     "scfis": [("trace", "/index/scfisTrace"), ("single", "/index/singleIndex?indexType=scfis")],
 }
+PAGES = {index: [("single", f"/index/singleIndex?indexType={index}")] for index in INDEX_NAMES}
+CURRENT_CSV = DATA / "current.csv"
+STATUS_CSV = DATA / "status.csv"
+STATUS_FIELDS = ["index", "name", "name_en", "frequency", "date", "checked_at", "last_success", "status", "available", "total", "url"]
+
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 NUM = re.compile(r"-?\d+(?:\.\d+)?")
 
@@ -60,64 +64,19 @@ NUM = re.compile(r"-?\d+(?:\.\d+)?")
 # Parsing
 # ---------------------------------------------------------------------------
 
-class _Tables(HTMLParser):
-    """Collect every table as a list of rows, each row a list of cell texts (whitespace collapsed)."""
-
-    def __init__(self):
-        super().__init__()
-        self.tables: list[list[list[str]]] = []
-        self._stack: list[list[list[str]]] = []
-        self._cell: list[str] | None = None
-
-    def handle_starttag(self, tag, attrs):
-        if tag == "table":
-            self._stack.append([])
-        elif tag == "tr" and self._stack:
-            self._stack[-1].append([])
-        elif tag in ("td", "th") and self._stack and self._stack[-1]:
-            self._cell = []
-        elif tag == "br" and self._cell is not None:
-            self._cell.append(" ")
-
-    def handle_endtag(self, tag):
-        if tag in ("td", "th") and self._cell is not None:
-            self._stack[-1][-1].append(" ".join("".join(self._cell).split()))
-            self._cell = None
-        elif tag == "table" and self._stack:
-            self.tables.append(self._stack.pop())
-
-    def handle_data(self, data):
-        if self._cell is not None:
-            self._cell.append(data)
-
-
 def parse(index: str, page: str, html: str) -> list[tuple[str, str, float]]:
     """(series, date, value) rows found in one SSE page."""
+    if page != "trace":
+        out = []
+        for r in parse_page(index, html):
+            if r["value"]:
+                out.append((r["series"], r["date"], float(r["value"])))
+            if r["prev"] and r["prev_date"]:
+                out.append((r["series"], r["prev_date"], float(r["prev"])))
+        return out
     p = _Tables()
     p.feed(html)
-    out = []
-    for table in p.tables:
-        out += _parse_trace(index, table) if page == "trace" else _parse_single(index, table)
-    return out
-
-
-def _parse_single(index: str, table: list[list[str]]) -> list[tuple[str, str, float]]:
-    """Single-period table: a header row with "上期 <date>" (optional) and "本期 <date>", then one row per series
-    whose numeric cells start with the values for those dates (followed by the change)."""
-    out, dates = [], None
-    for row in table:
-        if dates is None:
-            text = " ".join(row)
-            if "本期" in text:
-                dates = DATE.findall(text)
-            continue
-        if not row or not dates:
-            continue
-        key = match_series(index, row[0])
-        nums = [float(c) for c in row[1:] if NUM.fullmatch(c)]
-        if key and len(nums) >= len(dates):
-            out += [(key, d, v) for d, v in zip(dates, nums)]
-    return out
+    return [r for table in p.tables for r in _parse_trace(index, table)]
 
 
 def _parse_trace(index: str, table: list[list[str]]) -> list[tuple[str, str, float]]:
@@ -141,19 +100,64 @@ def _parse_trace(index: str, table: list[list[str]]) -> list[tuple[str, str, flo
 # ---------------------------------------------------------------------------
 
 def fetch_live() -> list[dict]:
+    """Refresh every index independently, retaining its last successful snapshot on failure."""
     rows = []
-    for index, pages in PAGES.items():
-        page, path = pages[0]
+    current = {(r["index"], r["series"]): r for r in read_rows(CURRENT_CSV)}
+    previous_status = {r["index"]: r for r in read_rows(STATUS_CSV)}
+    statuses = []
+    checked = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    headers = {"Cache-Control": "no-cache", "Referer": SSE + "/"}
+    if os.environ.get("SSE_COOKIE"):
+        headers["Cookie"] = os.environ["SSE_COOKIE"]
+
+    def fetch_index(index):
+        url = SSE + PAGES[index][0][1]
         try:
-            html = net.get(SSE + path).text
-        except Exception as exc:  # noqa: BLE001 - one failed page should not stop the others
-            print(f"  ! {index}: {exc}")
-            continue
-        got = parse(index, page, html)
-        print(f"  sse {index}: {len(got)} values, {', '.join(sorted({d for _, d, _ in got}))}")
-        if not got:
-            print(f"  ! {index}: no values found; the page layout may have changed")
-        rows += [{"index": index, "series": s, "date": d, "value": v, "source": "sse"} for s, d, v in got]
+            response = net.get(url, headers=headers, timeout=25, retries=2)
+            response.encoding = "utf-8"
+            snapshot = parse_page(index, response.text)
+            if not snapshot or not any(r["value"] for r in snapshot):
+                raise ValueError("no current values; check the page layout or access")
+            keys = [r["series"] for r in snapshot]
+            if len(keys) != len(set(keys)):
+                raise ValueError("ambiguous series labels")
+            return index, snapshot, ""
+        except Exception as exc:  # one failed source must not discard other updates
+            # Do not log request headers/cookies or authentication details.
+            return index, [], type(exc).__name__
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for index, snapshot, error in pool.map(fetch_index, PAGES):
+            old = previous_status.get(index, {})
+            status = {"index": index, "name": INDEX_NAMES[index][0], "name_en": INDEX_NAMES[index][1],
+                      "frequency": frequency(index), "date": old.get("date", ""), "checked_at": checked,
+                      "last_success": old.get("last_success", ""), "status": "error",
+                      "available": old.get("available", 0), "total": old.get("total", 0),
+                      "url": SSE + PAGES[index][0][1]}
+            if error:
+                print(f"  ! {index}: {error}; keeping saved data", flush=True)
+            else:
+                for r in snapshot:
+                    current[(index, r["series"])] = r
+                    for d, value in [(r["date"], r["value"]), (r["prev_date"], r["prev"])]:
+                        if d and value:
+                            rows.append({"index": index, "series": r["series"], "date": d, "value": value, "source": "sse"})
+                available = sum(bool(r["value"]) for r in snapshot)
+                status.update(date=max(r["date"] for r in snapshot), last_success=checked,
+                              status="ok" if available == len(snapshot) else "partial", available=available, total=len(snapshot))
+                print(f"  sse {index}: {available}/{len(snapshot)} current values, {status['date']}", flush=True)
+            statuses.append(status)
+    # The trace page adds the last four settlement periods, not just the latest one.
+    if "scfis" in PAGES:
+        try:
+            response = net.get(SSE + "/index/scfisTrace", headers=headers, timeout=25, retries=2)
+            response.encoding = "utf-8"
+            rows.extend({"index": "scfis", "series": s, "date": d, "value": v, "source": "sse"}
+                        for s, d, v in parse("scfis", "trace", response.text))
+        except Exception as exc:
+            print(f"  ! scfis trace: {type(exc).__name__}; single-period data retained")
+    write_rows(CURRENT_CSV, list(current.values()), CURRENT_FIELDS, sort_by=("index", "series"))
+    write_rows(STATUS_CSV, statuses, STATUS_FIELDS)
     return rows
 
 
@@ -171,7 +175,7 @@ def update_archive() -> None:
     and the pass stops after a few failures in a row; the next run carries on where it stopped. The check is
     marked as done only when every snapshot was downloaded."""
     failures, complete = 0, True
-    for index, pages in PAGES.items():
+    for index, pages in ARCHIVE_PAGES.items():
         for page, path in pages:
             if failures >= ARCHIVE_MAX_FAILURES:
                 break
@@ -215,6 +219,18 @@ def read_archive() -> list[dict]:
     return rows
 
 
+def read_archive_metadata() -> list[dict]:
+    """Retain names and units for historical components no longer listed live."""
+    catalog = {}
+    for f in sorted(ARCHIVE_DIR.glob("*/*.html")):
+        index, page = f.parent.name, f.stem.split("_")[0]
+        if index not in ARCHIVE_PAGES or page == "trace":
+            continue
+        for r in parse_page(index, f.read_text(encoding="utf-8", errors="replace")):
+            catalog[(index, r["series"])] = {k: r[k] for k in ("index", "series", "name", "name_en", "unit")}
+    return list(catalog.values())
+
+
 def read_published() -> list[dict]:
     site = os.environ.get("INVESTDIY_SITE", "").rstrip("/")
     if not site:
@@ -244,17 +260,17 @@ def merge(*layers: list[dict]) -> list[dict]:
                     conflicts += 1
                     print(f"  ! archive differs: {k} archive {v} vs sse {out[k]['value']}")
                 continue
-            out[k] = {**r, "value": f"{v:.2f}"}
+            out[k] = {**r, "value": format(v, ".12g")}
     if conflicts:
         print(f"  {conflicts} archive values differ from SSE (SSE kept)")
     return list(out.values())
 
 
-def run(refresh_archive: bool = False) -> None:
+def run(refresh_archive: bool = False, latest_only: bool = False) -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     print("SSE pages")
     live = fetch_live()
-    if refresh_archive or _archive_due():
+    if not latest_only and (refresh_archive or _archive_due()):
         print("Wayback Machine")
         update_archive()
     rows = merge(live, read_rows(OBS_CSV), read_published(), read_archive())
@@ -263,6 +279,8 @@ def run(refresh_archive: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Fetch CCFI / SCFI / SCFIS observations")
+    ap = argparse.ArgumentParser(description="Fetch all SSE shipping index observations")
     ap.add_argument("--refresh-archive", action="store_true", help="look for new archive snapshots now")
-    run(ap.parse_args().refresh_archive)
+    ap.add_argument("--latest-only", action="store_true", help="update latest SSE data without archive downloads")
+    a = ap.parse_args()
+    run(a.refresh_archive, a.latest_only)

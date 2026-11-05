@@ -45,6 +45,7 @@ Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States),
    ```python
    TOOL = {
        "slug": "ashare-track-xxx",             # URL segment; not api / static / common / web
+       "visibility": "local",                # local (default) or public; only public tools are exported
        "title": "A股xxx数据跟踪",
        "description": "一句话说明",
        "kind": "数据跟踪",
@@ -60,7 +61,7 @@ Market codes: `ashare` (China A-shares), `hk` (Hong Kong), `us` (United States),
 2. Add `__main__.py` so that `python -m investdiy.<package>` fetches and recomputes everything, writing page data to `data/out/`.
 3. Add `web/index.html` with the shared assets in the order listed in [Architecture](architecture.md#front-end-kit), plus `web/strings.js` (dictionary) and `web/app.js` (page code). Read data with relative paths, e.g. `kit.csv('data/xxx.csv')`.
 4. Reuse shared helpers with relative imports: `from ..common import net, market, fund_reports`.
-5. Restart the server; the home page lists the new tool automatically.
+5. Choose `visibility`: use `"local"` for local access only, or explicitly set `"public"` to include the tool in static exports and the Surge update/publish workflow. Missing visibility defaults to local; unknown values fail discovery. Restart the server; the home page lists the tool with its visibility badge.
 6. Document the tool in `docs/tools/<slug>.md` (method, data sources, validation, limitations) and add it to the tools table in `README.md`.
 
 Further pages of the same tool sit next to `index.html` (for example `web/backtest.html`, served at `/<slug>/backtest.html`).
@@ -73,7 +74,7 @@ Further pages of the same tool sit next to `index.html` (for example `web/backte
 
 ## Static export
 
-The site can be exported as static files and served by any static file host:
+Only tools with `TOOL["visibility"] = "public"` are exported as static files for Surge or another static host. The local server continues to serve both public and local tools:
 
 ```bash
 .venv/bin/python3 -m investdiy.export                 # export to investdiy/dist/
@@ -81,15 +82,17 @@ The site can be exported as static files and served by any static file host:
 cd investdiy/dist && python3 -m http.server           # preview
 ```
 
-- The snapshot is static: run each tool's update command first, then export.
-- The export includes each tool's `data/out/` CSV files. Check the data providers' terms before hosting it publicly.
+- The snapshot is static: run each public tool's update command first, then export.
+- The export includes public tools' pages, scripts and `data/out/` CSV files only. Local tools are also absent from `/api/tools.json`; direct URLs to their pages or data cannot resolve in the export.
+- Rebuilding clears the previous export, including tools newly marked local. Source directories and local data are retained. The maintainer's `local/publish.py` uses this same filtered exporter.
+- A visibility change affects the hosted site only after the next deployment. Merely exporting does not change an existing Surge deployment.
 
 ## Scheduled updates
 
-`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs every tool's update command, checks the data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs twice a day, Beijing time: at 23:47 from Monday to Friday for the preliminary units of day T (SSE publishes them at about 22:10, SZSE at about 23:20), and at 09:37 from Tuesday to Saturday for the final units published on the morning of T+1. It can also be started by hand from the Actions tab ("Run workflow", optionally without publishing).
+`.github/workflows/update.yml` has two jobs that run one after the other: `update` runs public tools' update commands, checks only their data dates and exports the public site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets. It runs twice a day, Beijing time: at 23:47 from Monday to Friday for the preliminary units of day T (SSE publishes them at about 22:10, SZSE at about 23:20), and at 09:37 from Tuesday to Saturday for the final units published on the morning of T+1. It can also be started by hand from the Actions tab ("Run workflow", optionally without publishing).
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).
-- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer. Tools whose sources only show recent data (such as the freight tracker) merge their own published CSV from the live site (`INVESTDIY_SITE`, set by the workflow), so an evicted cache does not lose their history.
+- **Data between runs**: `investdiy/*/data/` is kept in the Actions cache, not in git. The first run, or a run after the cache was evicted (7 days without a run), backfills from scratch and takes much longer. Public tools may recover accumulated history from their published files (`INVESTDIY_SITE`, set by the workflow). Local tools such as the freight tracker are not updated by this publication workflow. The freight tracker has a separate [SSE collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection), with encrypted history artifacts and no publishing job. Local data folders still need independent backups.
 - **Seeding from local data**: to skip the backfill, upload local data to a draft release (drafts are visible only to collaborators and create no tag), run the workflow by hand with "seed" checked, then delete the release:
 
   ```bash
@@ -98,5 +101,5 @@ cd investdiy/dist && python3 -m http.server           # preview
   gh workflow run update.yml -f seed=true
   gh release delete seed-data --yes        # after the run has saved the cache
   ```
-- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days, or for more than the `max_stale_days` set in its `TOOL` dict, such as 17 for the weekly freight indices (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Safety checks**: the run does not publish if a public tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days, or for more than the `max_stale_days` set in its `TOOL` dict (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
 - **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.

@@ -39,7 +39,7 @@ def _inside(base: Path, rel: str) -> Path | None:
 def tools_payload(tools: dict) -> list[dict]:
     """Tool list for the home page (shared by the server and the static export)."""
     return [
-        {"slug": t.slug, "url": f"/{t.slug}/", "asof": t.asof(meta), "update": t.update,
+        {"slug": t.slug, "url": f"/{t.slug}/", "asof": t.asof(meta), "update": t.update, "visibility": t.visibility,
          "zh": {"title": t.title, "description": t.description, "kind": t.kind},
          "en": {"title": t.title_en, "description": t.description_en, "kind": t.kind_en}}
         for t, meta in tools.values()

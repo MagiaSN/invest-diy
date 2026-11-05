@@ -18,6 +18,8 @@ export (investdiy/export.py) ► investdiy/dist/                static snapshot 
 
 `TOOL` holds the slug (the URL segment), titles, descriptions and kinds in Chinese and English, the update command, and optionally `asof_file`, a CSV whose first row has an `as_of` column shown on the home page as "data as of", and `max_stale_days`, how old that date may get before the scheduled update fails. Slugs must be unique and cannot be `api`, `static`, `common` or `web`.
 
+`TOOL["visibility"]` is `"local"` or `"public"`. It defaults to `"local"`; publishing requires an explicit `"public"` value, and invalid values raise an error. `discover()` returns both categories for the local server; `discover(public_only=True)` is used by export and the publication workflow. The API includes `visibility`, and the home page shows a bilingual badge.
+
 Discovery runs once when the server starts, so a new tool or a changed `TOOL` dict needs a server restart. Page files and data files are read on every request.
 
 ## Server routes
@@ -80,4 +82,4 @@ Main `kit` components:
 
 ## Static export
 
-`investdiy/export.py` copies `investdiy/web/` and each tool's `web/` and `data/out/` into `investdiy/dist/` (or `--out`), writes `/api/tools.json` as a static file and adds a 404 page, so the snapshot behaves like the local server and can be served by any static file host. See the [development guide](development.md#static-export).
+`investdiy/export.py` copies `investdiy/web/` and each **public** tool's `web/` and `data/out/` into `investdiy/dist/` (or `--out`), writes `/api/tools.json` as a static file and adds a 404 page, so the snapshot serves only public tools. Local tool entries, pages, scripts and data are excluded. Rebuilding replaces the previous export entirely, removing any tool that has become local without deleting its source files or local data. See the [development guide](development.md#static-export).
