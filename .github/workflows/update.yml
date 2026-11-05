@@ -100,7 +100,7 @@ jobs:
           UPDATE_SCHEDULE: ${{ github.event.schedule }}
         run: |
           python - <<'EOF'
-          import os, subprocess, sys
+          import os, shlex, subprocess, sys
           from datetime import datetime, timedelta
           from zoneinfo import ZoneInfo
           from investdiy.registry import discover
@@ -109,7 +109,7 @@ jobs:
           manual = os.environ["UPDATE_EVENT"] == "workflow_dispatch"
           monthly_run = os.environ.get("UPDATE_SCHEDULE") == "53 15 7-10,15 * *"
           failed = []
-          for tool, meta in discover().values():
+          for tool, meta in discover(public_only=True).values():
               asof = tool.asof(meta)
               gold = tool.slug == "cn-track-pboc-gold"
               # Always rebuild missing outputs after cache eviction; manual runs force every tool.
@@ -121,7 +121,7 @@ jobs:
               if not due:
                   print(f"{tool.slug}: cached through {asof}; no fetch due", flush=True)
                   continue
-              cmd = [sys.executable, "-m", tool.update.split()[-1]]
+              cmd = [sys.executable, *shlex.split(tool.update)[1:]]
               print(f"::group::{tool.slug}", flush=True)
               if subprocess.run(cmd).returncode != 0:
                   failed.append(tool.slug)
@@ -147,7 +147,7 @@ jobs:
           from datetime import date
           from investdiy.registry import discover
           from investdiy.server import tools_payload
-          tools = discover()
+          tools = discover(public_only=True)
           new = {t["slug"]: t["asof"] for t in tools_payload(tools)}
           # monthly tools set a longer limit in their TOOL dict (max_stale_days)
           limit = {slug: int(meta.get("max_stale_days", os.environ["MAX_STALE_DAYS"])) for slug, (_, meta) in tools.items()}

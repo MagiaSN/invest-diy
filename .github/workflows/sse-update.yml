@@ -1,0 +1,146 @@
+# Scheduled collection requires the repository opt-in and encryption secret.
+# This local tool must never enter the public export or Surge deployment workflow.
+name: Collect SSE shipping indices
+
+on:
+  workflow_dispatch:
+    inputs:
+      initialize:
+        description: "Allow starting without a saved history (first run only)"
+        type: boolean
+        default: false
+  schedule:
+    # UTC; Beijing 15:37, 17:37 and 20:37, including holiday replacement workdays.
+    - cron: "37 7,9,12 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sse-collection
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: vars.SSE_COLLECTION_ENABLED == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATA_DIR: investdiy/global_track_container_freight/data
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Check encryption configuration
+        env:
+          SSE_DATA_PASSPHRASE: ${{ secrets.SSE_DATA_PASSPHRASE }}
+        run: |
+          if [ -z "$SSE_DATA_PASSPHRASE" ]; then
+            echo "::error::Configure SSE_DATA_PASSPHRASE before collecting local data."
+            exit 1
+          fi
+          command -v gpg
+
+      - name: Restore latest encrypted history from this workflow and branch
+        id: restore
+        uses: actions/github-script@v7
+        env:
+          INITIALIZE: ${{ inputs.initialize || false }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const repo = context.repo;
+            const current = await github.rest.actions.getWorkflowRun({...repo, run_id: context.runId});
+            let saved;
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...repo, name: 'sse-history-encrypted', per_page: 100
+            });
+            artifacts.sort((a, b) => b.created_at.localeCompare(a.created_at));
+            for (const artifact of artifacts) {
+              if (artifact.expired || artifact.workflow_run?.head_branch !== current.data.head_branch) continue;
+              const run = await github.rest.actions.getWorkflowRun({...repo, run_id: artifact.workflow_run.id});
+              if (run.data.workflow_id !== current.data.workflow_id) continue;
+              saved = artifact;
+              break;
+            }
+            if (!saved) {
+              if (process.env.INITIALIZE !== 'true') {
+                throw new Error('No history found. Use initialize only for a deliberate fresh start; recover expired history from a backup.');
+              }
+              core.notice('Starting a new history from the periods currently exposed by SSE.');
+              core.setOutput('found', 'false');
+              return;
+            }
+            const download = await github.rest.actions.downloadArtifact({
+              ...repo, artifact_id: saved.id, archive_format: 'zip'
+            });
+            fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'sse-history.zip'), Buffer.from(download.data));
+            core.setOutput('found', 'true');
+
+      - name: Decrypt saved history
+        if: steps.restore.outputs.found == 'true'
+        env:
+          SSE_DATA_PASSPHRASE: ${{ secrets.SSE_DATA_PASSPHRASE }}
+        run: |
+          umask 077
+          python - <<'PY'
+          import os, zipfile
+          from pathlib import Path
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          with zipfile.ZipFile(tmp / "sse-history.zip") as archive:
+              (tmp / "sse-history.gpg").write_bytes(archive.read("sse-history.tar.gz.gpg"))
+          PY
+          printf '%s' "$SSE_DATA_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --output "$RUNNER_TEMP/sse-history.tar.gz" --decrypt "$RUNNER_TEMP/sse-history.gpg"
+          mkdir -p "$DATA_DIR"
+          tar xzf "$RUNNER_TEMP/sse-history.tar.gz" --directory "$DATA_DIR"
+
+      - name: Fetch latest SSE periods and check every source
+        id: collect
+        continue-on-error: true
+        env:
+          SSE_COOKIE: ${{ secrets.SSE_COOKIE }}
+        run: python -m investdiy.global_track_container_freight.collect
+
+      # Preserve successful source updates even when a different source failed.
+      # Neither plaintext data nor plaintext logs are uploaded or cached.
+      - name: Encrypt accumulated history
+        id: encrypt
+        if: ${{ !cancelled() && steps.collect.outcome != 'skipped' && steps.collect.outcome != '' }}
+        env:
+          SSE_DATA_PASSPHRASE: ${{ secrets.SSE_DATA_PASSPHRASE }}
+        run: |
+          umask 077
+          test -s "$DATA_DIR/observations.csv"
+          tar czf "$RUNNER_TEMP/sse-history.tar.gz" --directory "$DATA_DIR" .
+          printf '%s' "$SSE_DATA_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "$RUNNER_TEMP/sse-history.tar.gz.gpg" "$RUNNER_TEMP/sse-history.tar.gz"
+
+      - name: Save encrypted history
+        if: ${{ !cancelled() && steps.encrypt.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sse-history-encrypted
+          path: ${{ runner.temp }}/sse-history.tar.gz.gpg
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true
+
+      - name: Report collection failure
+        if: ${{ !cancelled() && steps.collect.outcome == 'failure' }}
+        run: |
+          echo "::error::One or more SSE sources failed validation. Available updates were preserved in the encrypted snapshot."
+          exit 1
+
+      - name: Remove runner copies
+        if: always()
+        run: |
+          rm -rf -- "$DATA_DIR"
+          rm -f -- "$RUNNER_TEMP"/sse-history.zip "$RUNNER_TEMP"/sse-history.gpg \
+            "$RUNNER_TEMP"/sse-history.tar.gz "$RUNNER_TEMP"/sse-history.tar.gz.gpg

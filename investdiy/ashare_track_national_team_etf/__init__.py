@@ -2,6 +2,7 @@
 
 TOOL = {
     "slug": "ashare-track-national-team-etf",
+    "visibility": "public",
     "title": "A股国家队宽基ETF数据跟踪",
     "description": "国家队重仓宽基 ETF（按定期报告自动入池）的每日净申赎、进出场信号，以及由官方持仓推出的减持下界。",
     "kind": "数据跟踪",

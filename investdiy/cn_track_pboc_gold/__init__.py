@@ -2,6 +2,7 @@
 
 TOOL = {
     "slug": "cn-track-pboc-gold",
+    "visibility": "public",
     "title": "中国央行黄金储备数据跟踪",
     "description": "中国人民银行黄金储备的月度持有量（吨 / 万盎司）、增减持、连续增持月数与增持阶段，以及黄金占官方储备资产的比例。",
     "kind": "数据跟踪",

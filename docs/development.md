@@ -86,11 +86,13 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-`.github/workflows/update.yml` runs tools due for refresh, checks every tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
+Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF and gold remain public; the SSE shipping tracker is local. Its [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
+
+`.github/workflows/update.yml` runs tools due for refresh, checks every public tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
 
 - **ETF**: 23:47 Monday-Friday for preliminary units of day T, and 09:37 Tuesday-Saturday for final units published on T+1 (Beijing time).
 - **Gold**: 23:53 on the 7th of each month, retries on the 8th-10th only while the previous month's figures are missing, and an unconditional revision check on the 15th. These runs include weekends; ETF fetching is skipped on the gold schedule.
-- **Manual and bootstrap**: "Run workflow" forces all tools to update, optionally without publication. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
+- **Manual and bootstrap**: "Run workflow" forces all public tools to update, optionally without publication. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
 
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).

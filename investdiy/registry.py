@@ -23,6 +23,7 @@ class Tool:
     title_en: str = ""
     description_en: str = ""
     kind_en: str = ""
+    visibility: str = "local"  # public export requires an explicit opt-in
 
     @property
     def web(self) -> Path:
@@ -41,7 +42,8 @@ class Tool:
         return (row or {}).get("as_of", "")
 
 
-def discover() -> dict[str, tuple[Tool, dict]]:
+def discover(*, public_only: bool = False) -> dict[str, tuple[Tool, dict]]:
+    """Discover all local tools, optionally selecting only explicitly public ones."""
     found: dict[str, tuple[Tool, dict]] = {}
     for d in sorted(TOOLS_DIR.iterdir()):
         if not (d / "__init__.py").exists() or not (d / "web" / "index.html").exists():
@@ -53,9 +55,12 @@ def discover() -> dict[str, tuple[Tool, dict]]:
         slug = meta["slug"]
         if slug in RESERVED or slug in found:
             raise ValueError(f"Duplicate or reserved tool slug: {slug} ({d.name})")
+        visibility = meta.get("visibility", "local")
+        if visibility not in ("local", "public"):
+            raise ValueError(f"Invalid tool visibility: {visibility!r} ({d.name}); use 'local' or 'public'")
         tool = Tool(slug=slug, title=meta["title"], description=meta.get("description", ""),
                     kind=meta.get("kind", "工具"), package=d.name, root=d, update=meta.get("update", ""),
                     title_en=meta.get("title_en", meta["title"]), description_en=meta.get("description_en", ""),
-                    kind_en=meta.get("kind_en", "Tool"))
+                    kind_en=meta.get("kind_en", "Tool"), visibility=visibility)
         found[slug] = (tool, meta)
-    return found
+    return {slug: entry for slug, entry in found.items() if not public_only or entry[0].visibility == "public"}

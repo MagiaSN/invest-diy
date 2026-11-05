@@ -1,4 +1,4 @@
-"""Export the toolbox as a static site.
+"""Export public tools as a static site; local tools never enter the output directory.
 
 The only dynamic part of the local server (server.py) is /api/tools.json, which is written out as a
 static file of the same name; everything else is copied as is, so the exported site behaves like localhost
@@ -9,7 +9,7 @@ Usage:
   .venv/bin/python3 -m investdiy.export --out /tmp/site    # export elsewhere
   cd investdiy/dist && python3 -m http.server              # preview the export
 
-Note: the export includes each tool's data/out/ CSV files; check the data providers' terms before
+Note: the export includes each public tool's data/out/ CSV files; check the data providers' terms before
 hosting it publicly.
 """
 
@@ -28,6 +28,9 @@ WEB = TOOLS_DIR / "web"
 
 
 def build(dist: Path = DIST) -> list[str]:
+    # Validate metadata before replacing a previous export. Discovery fails closed
+    # for invalid visibility, and missing visibility defaults to local.
+    tools = discover(public_only=True)
     if dist.exists():
         # only replace an empty folder or a previous export, never an arbitrary directory
         if any(dist.iterdir()) and not (dist / "api" / "tools.json").exists():
@@ -39,7 +42,6 @@ def build(dist: Path = DIST) -> list[str]:
     home.write_text(home.read_text(encoding="utf-8").replace('data-i18n="home.server"', 'data-i18n="home.snapshot"'),
                     encoding="utf-8")
 
-    tools = discover()
     (dist / "api").mkdir()
     (dist / "api" / "tools.json").write_text(json.dumps(tools_payload(tools), ensure_ascii=False), encoding="utf-8")
 

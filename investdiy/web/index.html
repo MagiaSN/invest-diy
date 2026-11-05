@@ -9,13 +9,17 @@
   .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gap); }
   .tool { display: flex; flex-direction: column; gap: 8px; color: inherit; transition: border-color .15s; }
   .tool:hover { text-decoration: none; border-color: var(--accent); }
-  .tool-top { display: flex; align-items: center; gap: 8px; }
+  .tool-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tool-kind { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--grid); color: var(--fg-muted); white-space: nowrap; }
   .tool-title { font-size: 17px; font-weight: 600; }
   .tool-desc { color: var(--fg-muted); font-size: 13px; line-height: 1.6; flex: 1; }
   .tool-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: 12px; color: var(--fg-muted); border-top: 1px solid var(--line); padding-top: 8px; }
   .tool-meta > span { white-space: nowrap; }
   .tool-meta > .tool-url { color: var(--accent); white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+  @media (max-width: 600px) {
+    .topbar-right { white-space: normal; min-width: 0; text-align: right; }
+    .lang-toggle { flex: none; }
+  }
 </style>
 </head>
 <body>
@@ -41,6 +45,8 @@ i18n.add({
     'home.empty': '还没有工具。',
     'home.nodata': '尚无数据',
     'home.error': '工具清单加载失败，确认服务器在运行。',
+    'home.local': '本地工具',
+    'home.public': '公开工具',
   },
   en: {
     'home.server': 'Local server · investdiy/server.py',
@@ -49,6 +55,8 @@ i18n.add({
     'home.empty': 'No tools yet.',
     'home.nodata': 'No data yet',
     'home.error': 'Could not load the tool list. Check that the server is running.',
+    'home.local': 'Local only',
+    'home.public': 'Public',
   },
 });
 
@@ -63,7 +71,8 @@ function render() {
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const a = el('a', 'card tool'); a.href = t.url;
     const top = el('div', 'tool-top');
-    top.append(el('span', 'tool-title', m.title), el('span', 'tool-kind', m.kind));
+    top.append(el('span', 'tool-title', m.title), el('span', 'tool-kind', m.kind),
+      el('span', 'tool-kind tool-visibility', i18n.t(t.visibility === 'public' ? 'home.public' : 'home.local')));
     const meta = el('div', 'tool-meta');
     meta.append(el('span', null, t.asof ? i18n.t('common.asof', { d: t.asof }) : i18n.t('home.nodata')),
       el('span', 'tool-url', t.url));
