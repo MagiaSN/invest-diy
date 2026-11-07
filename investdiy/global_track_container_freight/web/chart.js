@@ -5,6 +5,15 @@
   const name = (row) => i18n.lang === 'zh' ? row.name : row.name_en || row.name;
   const unitName = (unit) => unit === 'points' ? t('unit.points') : unit === 'pp' ? t('unit.pp') : unit;
   const valueText = (value) => value === '' || value == null ? '—' : kit.fmtNum(kit.num(value), 3);
+  const isHistorical = (row) => {
+    if (!row?.date) return false;
+    // Compare calendar dates in Beijing time, including leap-year anniversaries.
+    const today = new Date(Date.now() + 8 * 3600e3);
+    const year = today.getUTCFullYear() - 1, month = today.getUTCMonth();
+    const day = Math.min(today.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
+    const cutoff = new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+    return row.date <= cutoff;
+  };
   const GAP_DAYS = 17;
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -82,7 +91,7 @@
       this.q('.chart-index').addEventListener('change', (event) => {
         this.index = event.target.value;
         const rows = this.components();
-        this.series = (rows.find((row) => row.series === 'composite') || rows[0])?.series || '';
+        this.series = (rows.find((row) => row.series === 'composite' && !isHistorical(row)) || rows[0])?.series || '';
         this.resetRange();
         this.render();
       });
@@ -97,7 +106,11 @@
       this.render();
     }
 
-    components() { return this.data.allLatest.filter((row) => row.index === this.index); }
+    components() {
+      // Only entries with no observation for at least a year are moved to the end.
+      return this.data.allLatest.filter((row) => row.index === this.index)
+        .sort((a, b) => Number(isHistorical(a)) - Number(isHistorical(b)));
+    }
     points() { return this.data.series.get(`${this.index}/${this.series}`) || []; }
 
     resetRange() {
@@ -135,14 +148,13 @@
         option(row.index, `${row.index.toUpperCase()} · ${name(row)}`, row.index === this.index)));
       const components = this.components();
       this.q('.chart-series').replaceChildren(...components.map((row) => {
-        const suffix = row.availability === 'historical' ? t('t.historical') : Number(row.n) === 0 ? t('t.unavailable') : '';
+        const suffix = isHistorical(row) ? t('t.historical') : '';
         return option(row.series, `${name(row)}${row.unit ? ` · ${unitName(row.unit)}` : ''}${suffix ? ` (${suffix})` : ''}`, row.series === this.series);
       }));
       this.q('.chart-series').disabled = !components.length;
       this.q('.chart-caption').textContent = meta ? t('charts.caption', { unit: unitName(meta.unit) || '—', n: meta.n }) : '';
       this.q('.chart-state').textContent = !meta ? t('status.not_fetched')
-        : meta.availability === 'historical' ? t('charts.historical')
-          : meta.current === '' ? t('charts.unavailable') : '';
+        : isHistorical(meta) ? t('charts.historical', { date: meta.date }) : '';
       this.q('.chart-details summary').textContent = t('charts.details');
       const values = meta ? [
         ['t.period', meta.period || meta.reported_date || '—'], ['t.current', valueText(meta.current)],

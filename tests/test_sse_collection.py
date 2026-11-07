@@ -2,6 +2,9 @@
 
 import contextlib
 import io
+import os
+from pathlib import Path
+import tempfile
 import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -75,6 +78,32 @@ class CollectionTests(unittest.TestCase):
                 patch.object(collect, "read_rows", return_value=[]), \
                 contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(collect.main(), 1)
+
+    def test_coverage_drop_warns_and_summary_never_contains_values(self):
+        before = dict(index="ccfi", date="2026-10-30", available="13", total="13",
+                      status="ok", last_success=self.started.isoformat())
+        after = dict(before, date="2026-11-06", available="1", status="partial",
+                     value="PRIVATE_RATE", checked_at=self.started.isoformat())
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = Path(tmp) / "summary.md"
+            summary.write_text("## Existing timing report\n")
+            out = io.StringIO()
+            with patch.dict(os.environ, {"GITHUB_ACTIONS": "true", "GITHUB_STEP_SUMMARY": str(summary)}), \
+                    contextlib.redirect_stdout(out):
+                collect.report_status([after], [before])
+            self.assertIn("::warning::ccfi: coverage fell from 13/13 to 1/13", out.getvalue())
+            self.assertIn("| ccfi | 2026-11-06 | 1/13 | 13/13 | partial |", summary.read_text())
+            self.assertTrue(summary.read_text().startswith("## Existing timing report"))
+            self.assertNotIn("PRIVATE_RATE", out.getvalue() + summary.read_text())
+
+    def test_unchanged_restricted_coverage_does_not_report_a_regression(self):
+        row = dict(index="scfi", date="2026-11-06", available="1", total="21",
+                   status="partial", last_success=self.started.isoformat())
+        out = io.StringIO()
+        with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}), contextlib.redirect_stdout(out):
+            collect.report_status([row], [row])
+        self.assertIn("current values 1/21", out.getvalue())
+        self.assertNotIn("coverage fell", out.getvalue())
 
 
 if __name__ == "__main__":

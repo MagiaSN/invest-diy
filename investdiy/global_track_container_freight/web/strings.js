@@ -1,7 +1,7 @@
 /* Shipping tracker: bilingual interface; source component labels come from latest.csv. */
 i18n.add({
   "zh": {
-    "t.historical": "仅历史存档",
+    "t.historical": "历史数据 · 一年以上未更新",
     "weekly.asof": "核心周度数据截至 {d}",
     "page.title": "全球航运指数数据跟踪",
     "nav.label": "页面目录",
@@ -49,7 +49,6 @@ i18n.add({
     "t.publishedChange": "官方较上期涨跌",
     "t.lastDate": "最近可用日期",
     "t.lastValue": "最近可用值",
-    "t.unavailable": "未提供",
     "nav.charts": "指数走势",
     "charts.title": "指数走势",
     "charts.note": "每张图展示一个指数或分项，按需添加，自由选择。",
@@ -62,11 +61,10 @@ i18n.add({
     "charts.caption": "单位：{unit} · {n} 期数据",
     "charts.count": "共 {n} 张图表",
     "charts.details": "数据详情与来源",
-    "charts.historical": "此序列仅有历史存档，图中展示已有记录。",
-    "charts.unavailable": "SSE 未提供本期数值；如有历史记录，仍可在图中查看。"
+    "charts.historical": "此序列已有一年以上未更新，图中展示截至 {date} 的历史数据。"
   },
   "en": {
-    "t.historical": "Archive only",
+    "t.historical": "Historical data · no update for at least a year",
     "weekly.asof": "Core weekly coverage through {d}",
     "page.title": "Global Shipping Index Tracker",
     "nav.label": "Page sections",
@@ -114,7 +112,6 @@ i18n.add({
     "t.publishedChange": "Published change",
     "t.lastDate": "Last available date",
     "t.lastValue": "Last available value",
-    "t.unavailable": "Unavailable",
     "nav.charts": "Charts",
     "charts.title": "Index trends",
     "charts.note": "One index or component per chart. Add charts and choose the data you need.",
@@ -127,7 +124,6 @@ i18n.add({
     "charts.caption": "Unit: {unit} · {n} observations",
     "charts.count": "{n} chart(s)",
     "charts.details": "Data details and source",
-    "charts.historical": "This series contains archive observations only.",
-    "charts.unavailable": "SSE has not provided a current value. Any historical observations are still shown."
+    "charts.historical": "This series has not been updated for at least a year. The chart shows historical data through {date}."
   }
 });

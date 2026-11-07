@@ -89,7 +89,7 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF and gold remain public; the SSE shipping tracker is local. Its [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
+Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF and gold remain public; the SSE shipping tracker is local. Its [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
 
 `.github/workflows/update.yml` runs tools due for refresh, checks every public tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
 

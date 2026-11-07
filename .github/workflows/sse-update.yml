@@ -10,8 +10,9 @@ on:
         type: boolean
         default: false
   schedule:
-    # UTC; Beijing 15:37, 17:37 and 20:37, including holiday replacement workdays.
-    - cron: "37 7,9,12 * * *"
+    # UTC; Beijing 09:37/13:37 catch delayed public components from the prior release.
+    # 15:37/17:37/20:37 follow afternoon releases. Run daily, including weekends.
+    - cron: "37 1,5,7,9,12 * * *"
 
 permissions:
   contents: read
@@ -35,6 +36,26 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+
+      - name: Record actual collection timing
+        env:
+          COLLECTION_EVENT: ${{ github.event_name }}
+          COLLECTION_CRON: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          now = datetime.now(timezone.utc)
+          lines = ["## SSE collection timing", "",
+                   f"Trigger: {os.environ['COLLECTION_EVENT']}",
+                   f"Cron (UTC): {os.environ['COLLECTION_CRON'] or 'manual'}",
+                   f"Started (UTC): {now.isoformat(timespec='seconds')}",
+                   f"Started (Beijing): {now.astimezone(ZoneInfo('Asia/Shanghai')).isoformat(timespec='seconds')}", ""]
+          print("\n".join(lines))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as report:
+              report.write("\n\n".join(lines) + "\n")
+          PY
 
       - name: Check encryption configuration
         env:

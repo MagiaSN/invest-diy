@@ -2,6 +2,8 @@
 
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
+import os
+from pathlib import Path
 import tempfile
 from zoneinfo import ZoneInfo
 
@@ -34,8 +36,35 @@ def check_status(rows: list[dict], started: datetime) -> list[str]:
     return errors
 
 
+def report_status(rows: list[dict], previous: list[dict]) -> None:
+    """Report dates and coverage counts without exposing the index values."""
+    old = {row["index"]: row for row in previous}
+    summary = ["## SSE source coverage", "",
+               "| Index | Period | Current values | Previous coverage | Status | Checked (UTC) |",
+               "|---|---|---|---|---|---|"]
+    for row in rows:
+        index = row["index"]
+        if index not in INDEX_NAMES:
+            continue
+        before = old.get(index, {})
+        coverage = f"{row.get('available', 0)}/{row.get('total', '?')}"
+        prior = f"{before.get('available', 0)}/{before.get('total', '?')}"
+        print(f"{index}: {row['date']} ({row['status']}), current values {coverage}, previous {prior}")
+        summary.append(f"| {index} | {row['date']} | {coverage} | {prior} | {row['status']} | {row.get('checked_at', '')} |")
+        if (row["status"] == "partial" and before.get("last_success")
+                and int(row.get("available") or 0) < int(before.get("available") or 0)):
+            message = f"{index}: coverage fell from {prior} to {coverage}; later scheduled runs will check for delayed public components."
+            print(("::warning::" if os.environ.get("GITHUB_ACTIONS") == "true" else "Warning: ") + message)
+    summary.extend(["", "Partial coverage is retained and checked again on later runs. "
+                    "A successful run does not mean every component is publicly available.", ""])
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as report:
+            report.write("\n".join(summary))
+
+
 def main() -> int:
     started = datetime.now(timezone.utc).replace(microsecond=0)
+    previous = read_rows(fetch.STATUS_CSV)
     # Detailed output can include historical values. Keep it out of public CI logs.
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
         try:
@@ -45,11 +74,9 @@ def main() -> int:
         except Exception as exc:
             print(f"Collection failed ({type(exc).__name__}); saved observations are retained.")
             return 1
-    errors = check_status(read_rows(fetch.STATUS_CSV), started)
-    for row in read_rows(fetch.STATUS_CSV):
-        # Log only index identities, dates and status, never observed values.
-        if row["index"] in INDEX_NAMES:
-            print(f"{row['index']}: {row['date']} ({row['status']})")
+    rows = read_rows(fetch.STATUS_CSV)
+    errors = check_status(rows, started)
+    report_status(rows, previous)
     if errors:
         print("Missing, failed or stale sources: " + ", ".join(errors))
         return 1
