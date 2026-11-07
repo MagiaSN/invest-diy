@@ -9,8 +9,10 @@ Sources:
     parsed with the same code. They give sparse history before this tool started collecting.
   - The published copy of this tool's history.csv on the live site (env INVESTDIY_SITE, e.g.
     https://invest-diy.surge.sh): merged on every run so that history survives a lost local data folder.
+  - PDCI composite history: Panasia's official API, falling back to Xinhua's chart API.
 
 Precedence for the same (index, series, date): the live SSE page > existing rows > published copy > archive.
+For PDCI, Panasia observations always take precedence over Xinhua fallback observations.
 Archive values that disagree with SSE values are reported.
 
 Usage:
@@ -33,8 +35,9 @@ from pathlib import Path
 from ..common import net
 from ..common.csvio import read_rows, write_rows
 from . import TOOL
-from .indices import SERIES, INDEX_NAMES, frequency, match_series
+from .indices import SERIES, INDEX_NAMES, frequency, match_series, source_url
 from .parse import CURRENT_FIELDS, Tables as _Tables, parse_page
+from . import pdci
 
 DATA = Path(__file__).resolve().parent / "data"
 OBS_CSV = DATA / "observations.csv"      # index,series,date,value,source
@@ -51,7 +54,8 @@ ARCHIVE_PAGES = {   # historical snapshots are limited to the original three ind
     "scfi": [("single", "/index/singleIndex?indexType=scfi")],
     "scfis": [("trace", "/index/scfisTrace"), ("single", "/index/singleIndex?indexType=scfis")],
 }
-PAGES = {index: [("single", f"/index/singleIndex?indexType={index}")] for index in INDEX_NAMES}
+PAGES = {index: [("single", f"/index/singleIndex?indexType={index}")] for index in INDEX_NAMES if index != "pdci"}
+PAGES["pdci"] = [("json", pdci.PANASIA_PAGE)]
 CURRENT_CSV = DATA / "current.csv"
 STATUS_CSV = DATA / "status.csv"
 STATUS_FIELDS = ["index", "name", "name_en", "frequency", "date", "checked_at", "last_success", "status", "available", "total", "url"]
@@ -104,6 +108,7 @@ def fetch_live() -> list[dict]:
     rows = []
     current = {(r["index"], r["series"]): r for r in read_rows(CURRENT_CSV)}
     previous_status = {r["index"]: r for r in read_rows(STATUS_CSV)}
+    saved_pdci = [r for r in read_rows(OBS_CSV) if r["index"] == "pdci"]
     statuses = []
     checked = datetime.now(timezone.utc).isoformat(timespec="seconds")
     headers = {"Cache-Control": "no-cache", "Referer": SSE + "/"}
@@ -111,8 +116,11 @@ def fetch_live() -> list[dict]:
         headers["Cookie"] = os.environ["SSE_COOKIE"]
 
     def fetch_index(index):
-        url = SSE + PAGES[index][0][1]
+        url = source_url(index)
         try:
+            if index == "pdci":
+                history, url = pdci.fetch()
+                return index, pdci.snapshot(merge(history, saved_pdci)), history, url, ""
             response = net.get(url, headers=headers, timeout=25, retries=2)
             response.encoding = "utf-8"
             snapshot = parse_page(index, response.text)
@@ -121,31 +129,34 @@ def fetch_live() -> list[dict]:
             keys = [r["series"] for r in snapshot]
             if len(keys) != len(set(keys)):
                 raise ValueError("ambiguous series labels")
-            return index, snapshot, ""
+            history = [{"index": index, "series": r["series"], "date": d, "value": value, "source": "sse"}
+                       for r in snapshot for d, value in [(r["date"], r["value"]), (r["prev_date"], r["prev"])]
+                       if d and value]
+            return index, snapshot, history, url, ""
         except Exception as exc:  # one failed source must not discard other updates
             # Do not log request headers/cookies or authentication details.
-            return index, [], type(exc).__name__
+            return index, [], [], url, type(exc).__name__
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        for index, snapshot, error in pool.map(fetch_index, PAGES):
+        for index, snapshot, history, url, error in pool.map(fetch_index, PAGES):
             old = previous_status.get(index, {})
             status = {"index": index, "name": INDEX_NAMES[index][0], "name_en": INDEX_NAMES[index][1],
                       "frequency": frequency(index), "date": old.get("date", ""), "checked_at": checked,
                       "last_success": old.get("last_success", ""), "status": "error",
                       "available": old.get("available", 0), "total": old.get("total", 0),
-                      "url": SSE + PAGES[index][0][1]}
+                      "url": old.get("url", url) if error else url}
             if error:
                 print(f"  ! {index}: {error}; keeping saved data", flush=True)
             else:
                 for r in snapshot:
                     current[(index, r["series"])] = r
-                    for d, value in [(r["date"], r["value"]), (r["prev_date"], r["prev"])]:
-                        if d and value:
-                            rows.append({"index": index, "series": r["series"], "date": d, "value": value, "source": "sse"})
+                rows.extend(history)
                 available = sum(bool(r["value"]) for r in snapshot)
-                status.update(date=max(r["date"] for r in snapshot), last_success=checked,
+                # PDCI's saved snapshot may be newer than the fallback response.
+                fetched_date = max(r["date"] for r in (history if index == "pdci" else snapshot))
+                status.update(date=fetched_date, last_success=checked,
                               status="ok" if available == len(snapshot) else "partial", available=available, total=len(snapshot))
-                print(f"  sse {index}: {available}/{len(snapshot)} current values, {status['date']}", flush=True)
+                print(f"  {index}: {available}/{len(snapshot)} current values, {status['date']}", flush=True)
             statuses.append(status)
     # The trace page adds the last four settlement periods, not just the latest one.
     if "scfis" in PAGES:
@@ -256,6 +267,8 @@ def merge(*layers: list[dict]) -> list[dict]:
             k = (r["index"], r["series"], r["date"])
             v = float(r["value"])
             if k in out:
+                if r["index"] == "pdci" and pdci_priority(r) > pdci_priority(out[k]):
+                    out[k] = {**r, "value": format(v, ".12g")}
                 if r["source"] == "archive" and out[k]["source"] == "sse" and abs(v - float(out[k]["value"])) > 0.011:
                     conflicts += 1
                     print(f"  ! archive differs: {k} archive {v} vs sse {out[k]['value']}")
@@ -266,9 +279,14 @@ def merge(*layers: list[dict]) -> list[dict]:
     return list(out.values())
 
 
+def pdci_priority(row: dict) -> int:
+    """The primary source also wins over fallback values saved on another run."""
+    return {"panasia": 2, "xinhua": 1}.get(row.get("source"), 0)
+
+
 def run(refresh_archive: bool = False, latest_only: bool = False) -> None:
     DATA.mkdir(parents=True, exist_ok=True)
-    print("SSE pages")
+    print("Shipping indices (SSE and PDCI)")
     live = fetch_live()
     if not latest_only and (refresh_archive or _archive_due()):
         print("Wayback Machine")
@@ -279,8 +297,8 @@ def run(refresh_archive: bool = False, latest_only: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Fetch all SSE shipping index observations")
+    ap = argparse.ArgumentParser(description="Fetch SSE and PDCI shipping index observations")
     ap.add_argument("--refresh-archive", action="store_true", help="look for new archive snapshots now")
-    ap.add_argument("--latest-only", action="store_true", help="update latest SSE data without archive downloads")
+    ap.add_argument("--latest-only", action="store_true", help="update latest SSE data and PDCI history without archive downloads")
     a = ap.parse_args()
     run(a.refresh_archive, a.latest_only)

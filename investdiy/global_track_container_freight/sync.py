@@ -18,7 +18,7 @@ import zipfile
 
 from investdiy.common import github_actions
 from investdiy.common.csvio import read_rows, write_rows
-from . import analyze, fetch
+from . import analyze, fetch, pdci
 from .indices import INDEX_NAMES
 
 STATE = Path.home() / ".local/share/invest-diy"
@@ -87,6 +87,7 @@ def merge_snapshot(cloud: dict[str, list[dict]], data: Path) -> tuple[dict[str, 
             observations[key(row)] = row
             added += 1
         elif ((row["source"] == "sse" and old["source"] != "sse")
+              or (row["index"] == "pdci" and fetch.pdci_priority(row) > fetch.pdci_priority(old))
               or (row["source"] == old["source"] and row["index"] in preferred)):
             corrected += row["value"] != old["value"]
             observations[key(row)] = row
@@ -95,6 +96,10 @@ def merge_snapshot(cloud: dict[str, list[dict]], data: Path) -> tuple[dict[str, 
         k = (row["index"], row["series"])
         if k not in current or (row["index"] in preferred and row["date"] >= current[k]["date"]):
             current[k] = row
+    pdci_rows = [r for r in observations.values() if r["index"] == "pdci" and r["series"] == "composite"]
+    if pdci_rows:
+        # Keep current values consistent with the primary-over-fallback history merge.
+        current[("pdci", "composite")] = pdci.snapshot(pdci_rows)[0]
     for row in cloud["status.csv"]:
         if row["index"] in preferred or row["index"] not in old_status:
             old_status[row["index"]] = row

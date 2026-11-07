@@ -1,4 +1,4 @@
-"""HTTP requests: GET with retries, plus a DNS-over-HTTPS fallback.
+"""HTTP requests: GET and read-only POST queries with retries, plus a DNS-over-HTTPS fallback.
 
 Some networks (including some sandboxed environments) fail to resolve hosts such as szse.cn or
 cninfo.com.cn even though TCP 443 is reachable. ensure_resolvable() looks the IP up through
@@ -46,6 +46,20 @@ def get(url: str, *, params=None, headers=None, retries: int = 3, timeout: int =
     for i in range(retries):
         try:
             r = requests.get(url, params=params, headers={"User-Agent": UA, **(headers or {})}, timeout=timeout)
+            r.raise_for_status()
+            return r
+        except requests.RequestException:
+            if i == retries - 1:
+                raise
+            time.sleep(1.5 * (i + 1))
+    raise AssertionError
+
+
+def post(url: str, *, data=None, json=None, headers=None, retries: int = 3, timeout: int = 30) -> requests.Response:
+    """POST read-only data queries with the same bounded retries as GET."""
+    for i in range(retries):
+        try:
+            r = requests.post(url, data=data, json=json, headers={"User-Agent": UA, **(headers or {})}, timeout=timeout)
             r.raise_for_status()
             return r
         except requests.RequestException:

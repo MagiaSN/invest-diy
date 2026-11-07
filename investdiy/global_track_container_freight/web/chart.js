@@ -71,6 +71,8 @@
         tt.show(event, [
           { text: p.date + (archived ? t('tip.archive') : '') },
           ...rows.map(([ln, r]) => ({ text: `${ln.label} ${valueText(r.v)} ${unitName(ln.unit || 'points')}`, color: ln.color })),
+          ...rows.filter(([, r]) => ['panasia', 'xinhua'].includes(r.src))
+            .map(([, r]) => ({ text: t(`source.${r.src}`) })),
         ]);
       })
       .on('mouseleave', () => { tt.hide(); rule.style('opacity', 0); });
@@ -168,7 +170,8 @@
       }));
       const link = this.q('.chart-source-link');
       link.href = status?.url || `https://www.sse.net.cn/index/singleIndex?indexType=${this.index}`;
-      link.textContent = t('source.link');
+      link.textContent = this.index === 'pdci'
+        ? t(status?.url?.includes('cnfin.com') ? 'source.xinhua' : 'source.panasia') : t('source.link');
       const age = status?.date ? (Date.now() - new Date(status.date)) / 864e5 : Infinity;
       this.q('.chart-source').textContent = status ? t('source.status', {
         date: status.date || '—', frequency: t(`frequency.${status.frequency}`), checked: status.checked_at || '—',

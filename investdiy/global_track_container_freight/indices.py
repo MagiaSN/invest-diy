@@ -1,4 +1,4 @@
-"""SSE index catalog and stable keys for the original container series.
+"""Shipping index catalog and stable keys for container series, including PDCI.
 
 Additional components and their units are discovered from each official page.
 The legacy keys keep previously collected history compatible.
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 # index -> list of (series, keyword in the page, Chinese name, English name)
 SERIES: dict[str, list[tuple[str, str, str, str]]] = {
+    "pdci": [("composite", "综合", "综合指数", "Composite")],
     "ccfi": [
         ("composite", "综合", "综合指数", "Composite"),
         ("europe", "欧洲", "欧洲航线", "Europe"),
@@ -31,6 +32,9 @@ SERIES: dict[str, list[tuple[str, str, str, str]]] = {
         ("uswc", "美西", "美西航线", "US West Coast"),
     ],
 }
+
+MONTHLY = {"gcspi", "gcspi_ca", "gcspi_port", "csi", "brsti", "brtvi", "brcvi", "srfi", "ccri"}
+DAILY = {"cbcfi", "cdi", "cdfi", "fdi", "ctfi"}
 
 INDEX_NAMES = {   # index -> (Chinese, English)
     "ccfi": ("中国出口集装箱运价指数", "China Containerized Freight Index"),
@@ -57,10 +61,15 @@ INDEX_NAMES = {   # index -> (Chinese, English)
     "brcvi": ("“一带一路”集装箱海运量指数", "Belt and Road Container Volume Index"),
     "srfi": ("“海上丝绸之路”运价指数", "Maritime Silk Road Freight Index"),
     "ccri": ("中国（上海）国际海员薪酬指数", "China Crew Remuneration Index"),
+    "pdci": ("新华·泛亚航运中国内贸集装箱运价指数", "Xinhua–Panasia China Domestic Container Freight Index"),
 }
 
-MONTHLY = {"gcspi", "gcspi_ca", "gcspi_port", "csi", "brsti", "brtvi", "brcvi", "srfi", "ccri"}
-DAILY = {"cbcfi", "cdi", "cdfi", "fdi", "ctfi"}
+
+def source_url(index: str) -> str:
+    if index == "pdci":
+        from .pdci import PANASIA_PAGE
+        return PANASIA_PAGE
+    return f"https://www.sse.net.cn/index/singleIndex?indexType={index}"
 
 
 def frequency(index: str) -> str:

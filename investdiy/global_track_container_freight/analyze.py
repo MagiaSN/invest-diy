@@ -1,4 +1,4 @@
-"""Build history, per-series latest values, current SSE snapshots and source status.
+"""Build history, per-series latest values, current shipping snapshots and source status.
 
 Missing current cells stay missing even when historical observations exist.
 Calendar changes use observations within three days of the target date; the
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..common.csvio import read_rows, write_rows
 from .fetch import FIELDS, OBS_CSV, CURRENT_CSV, STATUS_CSV, STATUS_FIELDS, read_archive_metadata
-from .indices import SERIES, INDEX_NAMES, frequency
+from .indices import SERIES, INDEX_NAMES, frequency, source_url
 
 OUT = Path(__file__).resolve().parent / "data" / "out"
 TOLERANCE = 3
@@ -77,7 +77,7 @@ def main(data_dir: Path | None = None) -> None:
     statuses = {r["index"]: r for r in read_rows(status_csv)}
     for index, names in INDEX_NAMES.items():
         statuses.setdefault(index, dict(zip(STATUS_FIELDS, [index, *names, frequency(index), "", "", "", "not_fetched", 0, 0,
-                                                          f"https://www.sse.net.cn/index/singleIndex?indexType={index}"])))
+                                                          source_url(index)])))
     write_rows(out / "status.csv", list(statuses.values()), STATUS_FIELDS)
     core_dates = [r["date"] for r in latest if (r["index"], r["series"]) in
                   {("ccfi", "composite"), ("scfi", "composite"), ("scfis", "europe"), ("scfis", "uswc")}]

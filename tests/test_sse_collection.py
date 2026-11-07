@@ -63,7 +63,7 @@ class CollectionTests(unittest.TestCase):
         run.assert_called_once_with(latest_only=True)
         analyze.assert_called_once()
         self.assertNotIn("1234.56", out.getvalue())
-        self.assertIn("Checked all 24", out.getvalue())
+        self.assertIn(f"Checked all {len(INDEX_NAMES)}", out.getvalue())
 
     def test_failure_is_nonzero_and_exception_details_are_private(self):
         out = io.StringIO()

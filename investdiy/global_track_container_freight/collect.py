@@ -39,7 +39,7 @@ def check_status(rows: list[dict], started: datetime) -> list[str]:
 def report_status(rows: list[dict], previous: list[dict]) -> None:
     """Report dates and coverage counts without exposing the index values."""
     old = {row["index"]: row for row in previous}
-    summary = ["## SSE source coverage", "",
+    summary = ["## Shipping source coverage", "",
                "| Index | Period | Current values | Previous coverage | Status | Checked (UTC) |",
                "|---|---|---|---|---|---|"]
     for row in rows:
@@ -80,7 +80,7 @@ def main() -> int:
     if errors:
         print("Missing, failed or stale sources: " + ", ".join(errors))
         return 1
-    print(f"Checked all {len(INDEX_NAMES)} SSE sections; history merged without duplicate periods.")
+    print(f"Checked all {len(INDEX_NAMES)} shipping indices; history merged without duplicate periods.")
     return 0
 
 

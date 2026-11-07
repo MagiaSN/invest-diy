@@ -2,11 +2,11 @@
 
 Package `investdiy/global_track_container_freight/`, served at `/global-track-container-freight/`. The existing package and URL remain compatible with earlier installations. This is a **local tool** (`visibility: local`): the local server lists it, but public exports and Surge deployments exclude its pages, scripts and data.
 
-The tracker reads all **24 sections in SSE's index navigation**, including their routes, vessel sizes and other components. Each section uses its latest published period; the source publishes daily, weekly and monthly series on different schedules.
+The tracker reads all **24 sections in SSE's index navigation**, including their routes, vessel sizes and other components, plus the **PDCI domestic container freight composite** from Panasia and Xinhua. Each section uses its latest published period; the source publishes daily, weekly and monthly series on different schedules.
 
 | Coverage | Index sections |
 |---|---|
-| Container freight | CCFI, SCFI, SCFIS, CICFI, TWFI, SEAFI |
+| Container freight | CCFI, SCFI, SCFIS, CICFI, TWFI, SEAFI, PDCI composite |
 | Schedule reliability | GCSPI trade lanes, GCSPI_CA carriers/alliances, GCSPI_PORT ports |
 | Coastal bulk and hire | CBFI, CBCFI, CBOFI, CBGFI, CCTFI_COASTAL, CDI |
 | Dry bulk and crude oil | FDI, CDFI, CTFI |
@@ -35,7 +35,7 @@ Before changing this tool to public, obtain and record written authorization cov
 
 ## Page
 
-The headline index cards remain fixed. Below them, the page initially shows **one CCFI composite chart**. “Add chart” creates another independent chart; users can remove charts while keeping at least one. The first selector chooses the index (CCFI, SCFI, etc.); the second lists that index's composite and components, including unavailable and archive-only series. Each chart shows exactly one series and owns its own date range, defaulting to the latest year of available data. New charts and series changes also default to one year; changing a series resets only that chart's date range. Charts added during a visit are not persisted across reloads.
+The headline index cards remain fixed. Below them, the page initially shows **one CCFI composite chart**. “Add chart” creates another independent chart; users can remove charts while keeping at least one. The first selector chooses the index (CCFI, SCFI, PDCI, etc.); the second lists that index's composite and components, including unavailable and archive-only series. Each chart shows exactly one series and owns its own date range, defaulting to the latest year of available data. New charts and series changes also default to one year; changing a series resets only that chart's date range. Charts added during a visit are not persisted across reloads.
 
 `web/chart.js` exposes the reusable `FreightChart` component. Each instance owns its DOM, selectors, plot, range picker and expandable source details. `app.js` owns the chart list and the minimum-one rule. Removal disposes of the component and its range picker's language listener.
 
@@ -46,7 +46,7 @@ Each index has its own publication/period date, last check, last successful fetc
 ## Running
 
 ```bash
-.venv/bin/python3 -m investdiy.global_track_container_freight --latest-only      # latest SSE periods + compute
+.venv/bin/python3 -m investdiy.global_track_container_freight --latest-only      # latest SSE periods + PDCI history + compute
 .venv/bin/python3 -m investdiy.global_track_container_freight --skip-fetch       # recompute saved data
 .venv/bin/python3 -m investdiy.global_track_container_freight --refresh-archive  # also look for historical snapshots
 ```
@@ -59,7 +59,8 @@ If an existing authorized SSE session is available, the optional `SSE_COOKIE` en
 
 | Module / output | Role |
 |---|---|
-| `indices.py` | 24 index names, frequencies and compatible keys for the original container series |
+| `indices.py` | 24 SSE indices plus PDCI, frequencies and compatible series keys |
+| `pdci.py` | validated composite history from Panasia, with Xinhua fallback |
 | `parse.py` | span-aware tables, dated columns, embedded literal data, component identities and units |
 | `fetch.py` | live sources, archive and published history merge |
 | `data/observations.csv` | nonempty historical observations, preserving source precision |
@@ -94,7 +95,7 @@ Checked against SSE's official documentation on **2026-11-05**. All times below 
 
 The cron is `37 1,5,7,9,12 * * *` in UTC: **09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time every day**. The morning and midday runs recheck public components that were unavailable on release day; the afternoon and evening runs follow the main publication windows. Weekends are included so Friday releases can be completed on Saturday. These are requested start times: [GitHub documents that scheduled events may be delayed or dropped under load](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule). There is no guarantee of an exact next execution or a complete public response.
 
-Each run invokes `python -m investdiy.global_track_container_freight.collect`, fetches all 24 sections with `latest_only=True`, merges observations, and recomputes the local dashboard outputs. The collector accepts restricted/blank components but fails on missing sources, failed requests, reused success statuses, or stalled feeds. Staleness limits are 17 days for daily/weekly sections and 100 days for monthly sections; these deliberately allow holidays and monthly period labels and **do not certify that a release has arrived at its exact deadline**. Successful source updates are saved even if another source fails. The next scheduled run retries the pages.
+Each run invokes `python -m investdiy.global_track_container_freight.collect`, fetches all 24 SSE sections plus PDCI with `latest_only=True`, merges observations, and recomputes the local dashboard outputs. The collector accepts restricted/blank components but fails on missing sources, failed requests, reused success statuses, or stalled feeds. Staleness limits are 17 days for daily/weekly sections and 100 days for monthly sections; these deliberately allow holidays and monthly period labels and **do not certify that a release has arrived at its exact deadline**. Successful source updates are saved even if another source fails. The next scheduled run retries the pages.
 
 History is carried across runners as the `sse-history-encrypted` artifact, encrypted using GPG AES256 and repository secret `SSE_DATA_PASSPHRASE`. Only ciphertext is uploaded; plaintext data is not committed, cached, included in the public site, or attached to workflow runs. Public logs and job summaries contain trigger/cron details, actual UTC and Beijing start times, source check times, period dates, status and available/total counts, not observed values. A decrease in coverage produces a warning without discarding partial results. Persistently restricted components do not by themselves fail every run. Optional secret `SSE_COOKIE` supplies an existing authorized SSE session. No Surge secrets or publish job are used.
 
@@ -151,10 +152,18 @@ Prefer the sync command for importing these files: directly replacing `data/` ca
 | [SSE SCFI page](https://www.sse.net.cn/index/singleIndex?indexType=scfi) | Composite plus all listed routes, box sizes, units and weights; restricted route values stay unavailable |
 | [SSE SCFIS trace](https://www.sse.net.cn/index/scfisTrace) | Europe and US West Coast, last four periods |
 | [SSE schedule reliability](https://www.sse.net.cn/index/singleIndex?indexType=gcspi) | Lane, carrier/alliance and port metrics; some tables store literal data in page scripts |
+| [Panasia PDCI](https://www.epanasia.com/epanasia/freightIndex/) | Primary source for PDCI composite weekly history since 2015-06-05 |
+| [Xinhua PDCI](https://indices.cnfin.com/3318271/index.html?idx=2) | Official composite history fallback when Panasia fails |
 | [Wayback Machine](https://web.archive.org/) | Sparse historical snapshots for CCFI, SCFI and SCFIS |
 | Published `history.csv` at `INVESTDIY_SITE` | Recovery of accumulated observations after a local cache is lost |
 
 The latest public pages do not expose all numeric components or full history. Historical queries and some current components require an SSE subscription. The source pages carry a copyright notice restricting republication and commercial use; check those terms before publicly hosting exports.
+
+PDCI uses `POST https://www.epanasia.com/epanasia/gateway/api/web/commonUrl/freight/epanBdFreightIndex` with JSON `{"indexType":"multiple","count":null}` and reads the plain `baseBdFreightIndexDTOS` records. If the request, response status or history validation fails, it uses `POST https://api.cnfin.com/roll/charts/getContent` with form fields `ids=12549&type=1` and parses the matching chart's JSON `content`. Both calls use finite timeouts and retries without login credentials. These are website endpoints, not documented public API contracts.
+
+Both sources normalize to `pdci/composite`, in points, retaining `panasia` or `xinhua` in each observation's source field. Panasia wins for overlapping dates even when its observations came from an earlier local run. An older fallback response cannot roll back the saved current snapshot; its source status still reports the period actually fetched, which may precede the last available observation. Both failures retain history and the last successful snapshot and mark the check as failed. The page links the provider used on the latest successful check, and chart tooltips identify the provider of each observation. Only the composite is collected; regional and directional PDCI components are outside this addition.
+
+PDCI uses Panasia's own transaction prices, including freight and principal surcharges, with 2015-06-05 = 1000. Dates are statistical period ends, not fetch or publication dates; the normal Friday release describes the preceding week. The APIs provide levels, so the separate published-change field stays blank; calendar changes are calculated as for other series. Panasia's page states restrictions on index use and redistribution. This addition retains the tool's local visibility and does not establish a redistribution license.
 
 ## Method
 
@@ -178,6 +187,8 @@ node --check investdiy/global_track_container_freight/web/strings.js
 ```
 
 Regression tests cover blank dated cells, numeric weights, mixed units, merged cells, repeated routes with different vessel sizes or parent groups, CSI side-by-side columns, monthly and embedded script data, legacy series identifiers, precision, failed-source retention, latest-only updates, zero bases, and preventing fresh daily data from masking stale weekly data.
+
+PDCI regression tests additionally cover provider response validation, automatic fallback, invalid dates/nonfinite values, conflicting duplicate observations, primary-source precedence across runs and sync imports, and retaining newer history/current values when the fallback lags or both sources fail. A live check on **2026-11-07** retrieved 596 Panasia composite observations from 2015-06-05 through 2026-10-30 (1027 points), and 595 Xinhua observations through 2026-10-23 (1017 points). All 595 overlapping dates matched. The data files remain local and git-ignored.
 
 A live check on 2026-11-04 read all 24 sections and identified 721 current components plus 15 additional historical CCFI/SCFI components. CCFI and SCFI reported 2026-10-30; SCFIS reported 2026-11-02; several daily indices reported 2026-11-04. These are source publication periods, not a promise that all components are public or have the same date.
 
