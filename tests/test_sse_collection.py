@@ -53,6 +53,27 @@ class CollectionTests(unittest.TestCase):
             row.update(date="2026-11-05", last_success=started.isoformat())
         self.assertEqual(collect.check_status(rows, started), [])
 
+    def test_pdci_fallback_is_accepted_but_failed_or_stalled_pdci_fails_collection(self):
+        rows = self.statuses()
+        pdci = next(row for row in rows if row["index"] == "pdci")
+        pdci["url"] = collect.fetch.pdci.XINHUA_PAGE
+        self.assertEqual(collect.check_status(rows, self.started), [])
+        pdci["status"] = "error"
+        self.assertEqual(collect.check_status(rows, self.started), ["pdci"])
+        pdci.update(status="ok", date="2026-10-01")
+        self.assertEqual(collect.check_status(rows, self.started), ["pdci"])
+
+    def test_report_identifies_pdci_provider_without_values(self):
+        for url, label in [(collect.fetch.pdci.PANASIA_PAGE, "Panasia (primary)"),
+                           (collect.fetch.pdci.XINHUA_PAGE, "Xinhua (fallback)")]:
+            row = dict(index="pdci", date="2026-10-30", available="1", total="1", status="ok",
+                       url=url, value="PRIVATE_PDCI_VALUE")
+            out = io.StringIO()
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}), contextlib.redirect_stdout(out):
+                collect.report_status([row], [])
+            self.assertIn(label, out.getvalue())
+            self.assertNotIn("PRIVATE_PDCI_VALUE", out.getvalue())
+
     def test_collector_uses_latest_only_and_does_not_log_values(self):
         out = io.StringIO()
         with patch.object(collect.fetch, "run", side_effect=lambda **kw: print("value=1234.56")) as run, \

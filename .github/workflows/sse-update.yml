@@ -1,10 +1,14 @@
 # Scheduled collection requires the repository opt-in and encryption secret.
 # This local tool must never enter the public export or Surge deployment workflow.
-name: Collect SSE shipping indices
+name: Collect shipping indices (SSE + PDCI)
 
 on:
   workflow_dispatch:
     inputs:
+      import_local_pdci_history:
+        description: "One-time import of the encrypted local history including PDCI"
+        type: boolean
+        default: false
       initialize:
         description: "Allow starting without a saved history (first run only)"
         type: boolean
@@ -12,6 +16,8 @@ on:
   schedule:
     # UTC; Beijing 09:37/13:37 catch delayed public components from the prior release.
     # 15:37/17:37/20:37 follow afternoon releases. Run daily, including weekends.
+    # Include weekly PDCI (normally released Friday); later runs retry delayed data.
+    # PDCI uses Panasia first and Xinhua on failure, sharing this encrypted history.
     - cron: "37 1,5,7,9,12 * * *"
 
 permissions:
@@ -47,7 +53,7 @@ jobs:
           from datetime import datetime, timezone
           from zoneinfo import ZoneInfo
           now = datetime.now(timezone.utc)
-          lines = ["## SSE collection timing", "",
+          lines = ["## Shipping collection timing (SSE + PDCI)", "",
                    f"Trigger: {os.environ['COLLECTION_EVENT']}",
                    f"Cron (UTC): {os.environ['COLLECTION_CRON'] or 'manual'}",
                    f"Started (UTC): {now.isoformat(timespec='seconds')}",
@@ -122,7 +128,37 @@ jobs:
           mkdir -p "$DATA_DIR"
           tar xzf "$RUNNER_TEMP/sse-history.tar.gz" --directory "$DATA_DIR"
 
-      - name: Fetch latest SSE periods and check every source
+      - name: Import encrypted local PDCI history once
+        if: github.event_name == 'workflow_dispatch' && inputs.import_local_pdci_history
+        env:
+          SSE_LOCAL_PDCI_SEED_1: ${{ secrets.SSE_LOCAL_PDCI_SEED_1 }}
+          SSE_LOCAL_PDCI_SEED_2: ${{ secrets.SSE_LOCAL_PDCI_SEED_2 }}
+          SSE_DATA_PASSPHRASE: ${{ secrets.SSE_DATA_PASSPHRASE }}
+        run: |
+          python - <<'PYSEED'
+          import base64, hashlib, os, tempfile
+          from pathlib import Path
+          from investdiy.common import github_actions
+          from investdiy.global_track_container_freight import sync
+
+          with tempfile.TemporaryDirectory(prefix="shipping-local-seed-") as temporary:
+              folder = Path(temporary)
+              payload = base64.b64decode(os.environ["SSE_LOCAL_PDCI_SEED_1"] + os.environ["SSE_LOCAL_PDCI_SEED_2"], validate=True)
+              if hashlib.sha256(payload).hexdigest() != "2b64e89acdab04965516b4d45980ac134be8f67b2dc2e526e9a4555435ac0148":
+                  raise ValueError("Unexpected encrypted local seed digest")
+              encrypted = folder / "seed.gpg"
+              encrypted.write_bytes(payload)
+              key = folder / "key"
+              key.touch(mode=0o600)
+              key.write_text(os.environ["SSE_DATA_PASSPHRASE"])
+              rows = sync.decode_snapshot(github_actions.decrypt_members(encrypted, key, list(sync.SCHEMAS)))
+              if len(rows["observations.csv"]) != 2364 or sum(r["index"] == "pdci" for r in rows["observations.csv"]) != 596:
+                  raise ValueError("Incomplete local history including PDCI")
+              result = sync.install_snapshot(rows, Path(os.environ["DATA_DIR"]), folder / "backup")
+              print(f"Local history imported: {result['added']} added, {result['corrected']} corrected, {result['total']} total observations.")
+          PYSEED
+
+      - name: Fetch SSE and PDCI and check every source
         id: collect
         continue-on-error: true
         env:
@@ -156,7 +192,7 @@ jobs:
       - name: Report collection failure
         if: ${{ !cancelled() && steps.collect.outcome == 'failure' }}
         run: |
-          echo "::error::One or more SSE sources failed validation. Available updates were preserved in the encrypted snapshot."
+          echo "::error::One or more shipping sources (SSE/PDCI) failed validation. Available updates were preserved in the encrypted snapshot."
           exit 1
 
       - name: Remove runner copies

@@ -40,8 +40,8 @@ def report_status(rows: list[dict], previous: list[dict]) -> None:
     """Report dates and coverage counts without exposing the index values."""
     old = {row["index"]: row for row in previous}
     summary = ["## Shipping source coverage", "",
-               "| Index | Period | Current values | Previous coverage | Status | Checked (UTC) |",
-               "|---|---|---|---|---|---|"]
+               "| Index | Period | Current values | Previous coverage | Status | Checked (UTC) | Provider |",
+               "|---|---|---|---|---|---|---|"]
     for row in rows:
         index = row["index"]
         if index not in INDEX_NAMES:
@@ -49,8 +49,12 @@ def report_status(rows: list[dict], previous: list[dict]) -> None:
         before = old.get(index, {})
         coverage = f"{row.get('available', 0)}/{row.get('total', '?')}"
         prior = f"{before.get('available', 0)}/{before.get('total', '?')}"
-        print(f"{index}: {row['date']} ({row['status']}), current values {coverage}, previous {prior}")
-        summary.append(f"| {index} | {row['date']} | {coverage} | {prior} | {row['status']} | {row.get('checked_at', '')} |")
+        provider = "SSE"
+        if index == "pdci":
+            provider = {fetch.pdci.PANASIA_PAGE: "Panasia (primary)",
+                        fetch.pdci.XINHUA_PAGE: "Xinhua (fallback)"}.get(row.get("url"), "Unknown")
+        print(f"{index}: {row['date']} ({row['status']}), current values {coverage}, previous {prior}, provider {provider}")
+        summary.append(f"| {index} | {row['date']} | {coverage} | {prior} | {row['status']} | {row.get('checked_at', '')} | {provider} |")
         if (row["status"] == "partial" and before.get("last_success")
                 and int(row.get("available") or 0) < int(before.get("available") or 0)):
             message = f"{index}: coverage fell from {prior} to {coverage}; later scheduled runs will check for delayed public components."
