@@ -118,7 +118,22 @@ To configure collection in a new repository:
 3. Confirm that collection and encrypted snapshot upload succeed. The existing `schedule` block runs automatically while the opt-in variable remains enabled.
 4. Leave `initialize=false` for subsequent manual runs. To pause collection, remove the opt-in variable or set it to `false`.
 
-To use an Actions snapshot locally, download its artifact ZIP, unzip it, then decrypt with GPG (which prompts for the passphrase) and extract into a staging directory:
+### Pull Actions data to the local dashboard
+
+From the repository root, synchronize and then start the server:
+
+```bash
+.venv/bin/python3 -m investdiy.global_track_container_freight.sync && \
+  .venv/bin/python3 -m investdiy.server
+```
+
+If the server is already running, run only the first command and refresh the page. The sync command requires `gh` authenticated with repository/Actions read access and `gpg`. It reads the decryption key from `~/.local/share/invest-diy/sse-data-passphrase`; `--key-file PATH` overrides that location. Never pass the key itself on the command line. `--repo OWNER/REPO` defaults to `MagiaSN/invest-diy`, and `--branch NAME` defaults to the repository's default branch.
+
+The command selects the newest retained `sse-history-encrypted` artifact from a completed `sse-update.yml` run on the selected branch. It can use a snapshot saved during a partially failed run. It does not trigger collection or publish a site. The download/decryption helpers in `investdiy/common/github_actions.py` are reusable; the shipping-specific CSV validation and merge rules live in `investdiy/global_track_container_freight/sync.py`.
+
+Imports preserve local-only history, deduplicate by `(index, series, date)`, prefer SSE observations over archive values, and use source period/last-success timestamps to avoid replacing newer local snapshots with older cloud data. Outputs are rebuilt in a temporary directory before installation. Existing data is backed up to `~/.local/share/invest-diy/backups/` (override with `--backup-dir PATH`, outside the data directory). Missing artifacts, decryption/validation failures or a failed rebuild leave existing data unchanged; replacement failures attempt rollback and retain the backup. Failed synchronization exits nonzero so `&&` does not start the server with a failed import. Backups are plaintext local data with owner-only file permissions; keep them private and manage their retention separately.
+
+For manual inspection instead, download the artifact ZIP, unzip it, then decrypt with GPG (which prompts for the passphrase) and extract into a staging directory:
 
 ```bash
 gpg --output sse-history.tar.gz --decrypt sse-history.tar.gz.gpg
@@ -126,7 +141,7 @@ mkdir -p sse-history-restored
 tar xzf sse-history.tar.gz --directory sse-history-restored
 ```
 
-Back up the existing local `data/` directory before replacing it with the restored files. Do not overwrite newer local observations; if both copies have advanced independently, merge `observations.csv` by `(index, series, date)` before recomputing. GitHub Actions does not synchronize a workstation automatically.
+Prefer the sync command for importing these files: directly replacing `data/` can lose local history. GitHub Actions does not synchronize a workstation automatically; run the command whenever a local refresh is needed.
 
 ## Data sources
 

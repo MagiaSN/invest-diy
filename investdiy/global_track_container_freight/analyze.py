@@ -31,11 +31,16 @@ def _change(points: list[tuple[date, float]], d: date, v: float, weeks: int) -> 
     return _pct(v, min(near)[2]) if near else ""
 
 
-def main() -> None:
-    obs = read_rows(OBS_CSV)
+def main(data_dir: Path | None = None) -> None:
+    """Compute outputs in place, or in a staging directory before importing a backup."""
+    obs_csv = data_dir / "observations.csv" if data_dir is not None else OBS_CSV
+    current_csv = data_dir / "current.csv" if data_dir is not None else CURRENT_CSV
+    status_csv = data_dir / "status.csv" if data_dir is not None else STATUS_CSV
+    out = data_dir / "out" if data_dir is not None else OUT
+    obs = read_rows(obs_csv)
     if not obs:
-        raise SystemExit(f"{OBS_CSV} is empty; run the fetch step first")
-    write_rows(OUT / "history.csv", obs, FIELDS, sort_by=("index", "series", "date"))
+        raise ValueError("No observations; fetch or restore data before computing outputs")
+    write_rows(out / "history.csv", obs, FIELDS, sort_by=("index", "series", "date"))
     by_series = defaultdict(list)
     for r in obs:
         by_series[(r["index"], r["series"])].append((date.fromisoformat(r["date"]), float(r["value"])))
@@ -45,7 +50,7 @@ def main() -> None:
     for index, series in SERIES.items():
         for key, _, name, name_en in series:
             metadata[(index, key)] = {"index": index, "series": key, "name": name, "name_en": name_en, "unit": "points"}
-    for r in read_rows(CURRENT_CSV):
+    for r in read_rows(current_csv):
         metadata[(r["index"], r["series"])] = r
     # Preserve unknown historical series from published data as well.
     for index, key in by_series:
@@ -68,12 +73,12 @@ def main() -> None:
         for weeks in (1, 4, 52):
             row[f"chg_{weeks}w"] = _change(pts, d, v, weeks) if pts else ""
         latest.append(row)
-    write_rows(OUT / "latest.csv", latest, LATEST_FIELDS)
-    statuses = {r["index"]: r for r in read_rows(STATUS_CSV)}
+    write_rows(out / "latest.csv", latest, LATEST_FIELDS)
+    statuses = {r["index"]: r for r in read_rows(status_csv)}
     for index, names in INDEX_NAMES.items():
         statuses.setdefault(index, dict(zip(STATUS_FIELDS, [index, *names, frequency(index), "", "", "", "not_fetched", 0, 0,
                                                           f"https://www.sse.net.cn/index/singleIndex?indexType={index}"])))
-    write_rows(OUT / "status.csv", list(statuses.values()), STATUS_FIELDS)
+    write_rows(out / "status.csv", list(statuses.values()), STATUS_FIELDS)
     core_dates = [r["date"] for r in latest if (r["index"], r["series"]) in
                   {("ccfi", "composite"), ("scfi", "composite"), ("scfis", "europe"), ("scfis", "uswc")}]
     sse_dates = [r["date"] for r in obs if r["source"] == "sse" and r["index"] == "ccfi"]
@@ -84,8 +89,8 @@ def main() -> None:
         "sse_since": min(sse_dates) if sse_dates else "",
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }
-    write_rows(OUT / "kpi.csv", [kpi], list(kpi))
-    print(f"  {len(obs)} observations, {len(latest)} series, weekly coverage through {kpi['as_of']} -> {OUT}")
+    write_rows(out / "kpi.csv", [kpi], list(kpi))
+    print(f"  {len(obs)} observations, {len(latest)} series, weekly coverage through {kpi['as_of']} -> {out}")
 
 
 if __name__ == "__main__":
