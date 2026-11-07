@@ -5,10 +5,6 @@ name: Collect SSE shipping indices
 on:
   workflow_dispatch:
     inputs:
-      import_local_history:
-        description: "One-time import of the encrypted 2026-11-07 local snapshot"
-        type: boolean
-        default: false
       initialize:
         description: "Allow starting without a saved history (first run only)"
         type: boolean
@@ -125,61 +121,6 @@ jobs:
             --output "$RUNNER_TEMP/sse-history.tar.gz" --decrypt "$RUNNER_TEMP/sse-history.gpg"
           mkdir -p "$DATA_DIR"
           tar xzf "$RUNNER_TEMP/sse-history.tar.gz" --directory "$DATA_DIR"
-
-      - name: Import one-time encrypted local history
-        if: github.event_name == 'workflow_dispatch' && inputs.import_local_history
-        env:
-          SSE_LOCAL_HISTORY_SEED_20261107: ${{ secrets.SSE_LOCAL_HISTORY_SEED_20261107 }}
-          SSE_DATA_PASSPHRASE: ${{ secrets.SSE_DATA_PASSPHRASE }}
-        run: |
-          python - <<'PYSEED'
-          import base64, csv, hashlib, io, math, os, subprocess, tempfile
-          from datetime import date
-          from pathlib import Path
-          from investdiy.common.csvio import read_rows, write_rows
-          from investdiy.global_track_container_freight.fetch import FIELDS, OBS_CSV
-          from investdiy.global_track_container_freight.indices import INDEX_NAMES
-
-          with tempfile.TemporaryDirectory(prefix="sse-local-seed-") as temporary:
-              folder = Path(temporary)
-              encrypted = folder / "seed.gpg"
-              encrypted.write_bytes(base64.b64decode(os.environ["SSE_LOCAL_HISTORY_SEED_20261107"], validate=True))
-              result = subprocess.run([
-                  "gpg", "--homedir", str(folder), "--batch", "--pinentry-mode", "loopback",
-                  "--passphrase-fd", "0", "--decrypt", str(encrypted),
-              ], input=os.environ["SSE_DATA_PASSPHRASE"].encode(), capture_output=True, timeout=120)
-              if result.returncode:
-                  raise RuntimeError("Local seed decryption failed")
-              if hashlib.sha256(result.stdout).hexdigest() != "5fc82c15a3c12645a50707e49f67c53f9505a7e11ee2052ffdb3b3dd3d92f861":
-                  raise ValueError("Unexpected local seed digest")
-              reader = csv.DictReader(io.StringIO(result.stdout.decode("utf-8")))
-              if reader.fieldnames != FIELDS:
-                  raise ValueError("Unexpected local seed schema")
-              seed, seen = [], set()
-              for row in reader:
-                  key = (row["index"], row["series"], row["date"])
-                  if (key in seen or row["index"] not in INDEX_NAMES or not row["series"]
-                          or not row["source"] or not math.isfinite(float(row["value"]))):
-                      raise ValueError("Invalid or duplicate seed observation")
-                  date.fromisoformat(row["date"])
-                  seen.add(key)
-                  seed.append(row)
-              if len(seed) != 1768:
-                  raise ValueError("Incomplete local seed")
-              current = read_rows(OBS_CSV)
-              merged = {(r["index"], r["series"], r["date"]): r for r in current}
-              if not current or len(merged) != len(current):
-                  raise ValueError("Saved cloud history is missing or duplicated")
-              before = len(merged)
-              for row in seed:
-                  merged.setdefault((row["index"], row["series"], row["date"]), row)
-              if not seen <= merged.keys():
-                  raise ValueError("Incomplete merged history")
-              staged = OBS_CSV.with_suffix(".seed.csv")
-              write_rows(staged, list(merged.values()), FIELDS, sort_by=("index", "series", "date"))
-              os.replace(staged, OBS_CSV)
-              print(f"One-time local history import: added {len(merged) - before} observations; total {len(merged)}. Existing cloud observations retained.")
-          PYSEED
 
       - name: Fetch latest SSE periods and check every source
         id: collect
