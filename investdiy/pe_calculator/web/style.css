@@ -1,0 +1,35 @@
+#results { display: flex; flex-direction: column; gap: 20px; }
+[hidden] { display: none !important; }
+button, input, select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+input, select { width: 100%; min-width: 0; }
+input:focus { border-color: var(--accent); }
+[aria-invalid="true"] { border-color: var(--up); }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--fg-muted); min-width: 0; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#stages { display: flex; flex-direction: column; gap: 12px; }
+.stage-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.stage-name { grid-column: 1 / 3; font-size: 12px; align-self: center; }
+.stage-name small { display: inline; margin-left: 8px; color: var(--fg-muted); }
+.remove-stage { grid-column: 3; grid-row: 1; justify-self: end; font-size: 12px; }
+.bar-row { display: grid; grid-template-columns: 55px 1fr minmax(70px, auto); align-items: center; gap: 12px; margin: 12px 0; }
+.bar-track { height: 20px; display: flex; background: var(--grid); border-radius: 4px; overflow: hidden; }
+.bar-forecast, .forecast-swatch { background: var(--accent); }
+.bar-terminal, .terminal-swatch { background: var(--s4); }
+.bar-value { text-align: right; font-weight: 600; }
+.table td:last-child { font-weight: 600; }
+summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 12px; }
+.formula { padding: 12px; background: var(--grid); border-radius: 6px; font-family: monospace; white-space: pre-line; overflow-wrap: anywhere; }
+.method-list { margin: 0; padding-left: 20px; line-height: 1.8; color: var(--fg-muted); font-size: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 600px) {
+  .topbar-right { display: none; }
+  .card { padding: 16px; }
+  .stage-row { gap: 8px; }
+  .bar-row { gap: 8px; grid-template-columns: 45px 1fr minmax(60px, auto); font-size: 12px; }
+  .kpi:first-child { grid-column: 1 / -1; }
+  .kpi-value { overflow-wrap: anywhere; }
+}

@@ -83,7 +83,10 @@ function render() {
 }
 
 i18n.onChange(render);
-fetch('/api/tools.json').then((r) => r.json()).then((list) => { tools = list; render(); })
+fetch('/api/tools.json').then((r) => r.json()).then((list) => {
+  tools = list.sort((a, b) => Number(b.slug === 'pe-calculator') - Number(a.slug === 'pe-calculator'));
+  render();
+})
   .catch(() => { box.textContent = i18n.t('home.error'); });
 </script>
 </body>

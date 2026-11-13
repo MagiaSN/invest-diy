@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="page.title">PE 估值速算</title>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-title" data-i18n="page.title">PE 估值速算</span>
+  <span class="topbar-right" data-i18n="page.local">本地即时计算</span>
+</div></header>
+<main class="page">
+  <h1 class="page-title" data-i18n="page.title">PE 估值速算</h1>
+  <p class="lede" data-i18n="page.lede"></p>
+  <form id="assumptions" class="grid2" novalidate>
+    <section class="card">
+      <div class="card-head"><h2 data-i18n="stage.title"></h2><button type="button" id="add-stage" data-i18n="stage.add"></button></div>
+      <p class="note" data-i18n="stage.note"></p>
+      <p class="note" id="stage-ratio-note" data-i18n="stage.ratioNote"></p>
+      <div id="stages"></div>
+      <p class="note" id="horizon"></p>
+    </section>
+    <section class="card">
+      <h2 data-i18n="input.title"></h2>
+      <div class="fields">
+        <label for="premium"><span data-i18n="input.premium"></span><input id="premium" type="number" min="0" max="100" step="any" value="10" required aria-describedby="premium-note"></label>
+        <label for="terminal-ratio"><span data-i18n="input.terminalRatio"></span><input id="terminal-ratio" type="number" min="0" step="any" value="100" required aria-describedby="terminal-ratio-note"></label>
+      </div>
+      <p class="note" id="premium-note" data-i18n="input.premiumNote"></p>
+      <p class="note" id="terminal-ratio-note" data-i18n="input.terminalRatioNote"></p>
+      <label for="rates"><span data-i18n="input.rates"></span><input id="rates" type="text" value="2, 4, 6" required aria-describedby="rates-note"></label>
+      <p class="note" id="rates-note" data-i18n="input.ratesNote"></p>
+      <div class="card-tools"><button type="button" id="reset" data-i18n="input.reset"></button><span class="note" data-i18n="input.example"></span></div>
+    </section>
+  </form>
+  <p id="error" class="stale" role="alert" hidden></p>
+  <div id="results">
+    <section class="kpis" aria-live="polite" aria-atomic="true">
+      <div class="kpi"><span class="kpi-label" data-i18n="result.range"></span><span id="pe-range" class="kpi-value"></span><span class="kpi-sub" data-i18n="result.basis"></span></div>
+      <div class="kpi"><span class="kpi-label" data-i18n="result.forecastRange"></span><span id="forecast-pe" class="kpi-value"></span><span class="kpi-sub" data-i18n="result.forecastNote"></span></div>
+      <div class="kpi"><span class="kpi-label" data-i18n="result.earnings"></span><span id="end-earnings" class="kpi-value"></span><span class="kpi-sub" id="end-year"></span></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 data-i18n="compare.title"></h2><button type="button" id="download" data-i18n="compare.download"></button></div>
+      <p class="note" id="comparison-note"></p>
+      <div class="legend"><span><i class="forecast-swatch"></i><span data-i18n="result.forecast"></span></span><span><i class="terminal-swatch"></i><span data-i18n="compare.terminalPV"></span></span></div>
+      <div id="comparison-bars"></div>
+      <div class="tablebox"><table class="table" id="scenario-table">
+        <caption class="sr-only" data-i18n="compare.title"></caption>
+        <thead><tr><th scope="col" data-i18n="compare.rate"></th><th scope="col" data-i18n="compare.discount"></th><th scope="col" data-i18n="compare.terminalPE"></th><th scope="col" data-i18n="result.forecast"></th><th scope="col" data-i18n="compare.terminalPV"></th><th scope="col" data-i18n="compare.pe"></th><th scope="col" data-i18n="compare.share"></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <details><summary data-i18n="annual.title"></summary>
+        <p class="note" data-i18n="annual.note"></p>
+        <label for="annual-scenario"><span data-i18n="annual.scenario"></span><select id="annual-scenario"></select></label>
+        <div class="tablebox"><table class="table" id="annual-table">
+          <caption class="sr-only" data-i18n="annual.title"></caption>
+          <thead><tr><th scope="col" data-i18n="annual.year"></th><th scope="col" data-i18n="annual.stage"></th><th scope="col" data-i18n="annual.growth"></th><th scope="col" data-i18n="annual.ratio"></th><th scope="col" data-i18n="annual.earnings"></th><th scope="col" data-i18n="annual.fcfe"></th><th scope="col" data-i18n="annual.factor"></th><th scope="col" data-i18n="annual.pv"></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </details>
+    </section>
+  </div>
+  <section class="card" id="method">
+    <h2 data-i18n="method.title"></h2>
+    <p class="note" data-i18n="method.model"></p>
+    <div class="formula" data-i18n="method.formula"></div>
+    <ol class="method-list">
+      <li data-i18n="method.timing"></li>
+      <li data-i18n="method.terminal"></li>
+      <li data-i18n="method.fcfe"></li>
+      <li data-i18n="method.limits"></li>
+    </ol>
+    <p class="note"><span data-i18n="method.source"></span> <a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/invfables/peratio.htm" target="_blank" rel="noopener noreferrer" data-i18n="method.link"></a></p>
+  </section>
+</main>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
