@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="page.title">全球铜市场数据跟踪</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="topbar-home" href="/" data-i18n="common.home"></a>
+    <span class="topbar-sep">/</span><span class="topbar-title" data-i18n="page.title"></span>
+    <span class="topbar-right" data-i18n="local"></span>
+  </div>
+  <nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav>
+</header>
+<main class="page">
+  <div class="intro">
+    <p class="eyebrow" data-i18n="eyebrow"></p>
+    <h1 class="page-title" data-i18n="page.title"></h1>
+    <p class="lede" data-i18n="intro"></p>
+    <p id="message" class="notice" role="status" data-i18n="common.loading"></p>
+  </div>
+  <section class="kpis" id="snapshot" aria-live="polite"></section>
+  <section class="card" id="prices" data-nav="prices.title">
+    <div class="card-head"><h2 data-i18n="prices.title"></h2><span class="unit" data-i18n="usdT"></span></div>
+    <div class="toolbar">
+      <div id="prices-range"></div>
+      <label><span data-i18n="basis"></span><select id="basis"><option value="net" data-i18n="net"></option><option value="gross" data-i18n="gross"></option></select></label>
+    </div>
+    <p class="note" data-i18n="prices.note"></p>
+    <div class="legend" id="prices-legend"></div><div class="chart" id="prices-chart"></div>
+  </section>
+  <section class="card" id="premiums" data-nav="premiums.title">
+    <div class="card-head"><h2 data-i18n="premiums.title"></h2><span class="unit" id="premium-unit"></span></div>
+    <div class="toolbar"><div id="premiums-range"></div>
+      <label><span data-i18n="metric"></span><select id="metric"><option value="pct" data-i18n="percent"></option><option value="spread" data-i18n="spread"></option></select></label>
+    </div>
+    <p class="note" id="premium-note"></p>
+    <div class="legend" id="premiums-legend"></div><div class="chart" id="premiums-chart"></div>
+    <div id="pair-latest" class="pair-latest"></div>
+  </section>
+  <section class="card" id="stocks" data-nav="stocks.title">
+    <div class="card-head"><h2 data-i18n="stocks.title"></h2><span class="unit" data-i18n="tonnes"></span></div>
+    <div id="stocks-range"></div><p class="note" data-i18n="stocks.note"></p>
+    <div class="legend" id="stocks-legend"></div><div class="chart" id="stocks-chart"></div>
+  </section>
+  <section class="card" id="about" data-nav="about.title">
+    <h2 data-i18n="about.title"></h2>
+    <ol class="method"><li data-i18n="about.prices"></li><li data-i18n="about.fx"></li><li data-i18n="about.formula"></li><li data-i18n="about.inventory"></li><li data-i18n="about.limits"></li></ol>
+    <p class="note"><a href="https://www.cmegroup.com/markets/metals/base/copper.contractSpecs.html" target="_blank" rel="noopener">COMEX</a> · <a href="https://www.lme.com/en/Metals/Non-ferrous/LME-Copper/Contract-specifications" target="_blank" rel="noopener">LME</a> · <a href="https://www.shfe.com.cn/" target="_blank" rel="noopener">SHFE</a> · <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener">ECB</a></p>
+  </section>
+</main>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

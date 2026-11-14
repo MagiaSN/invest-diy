@@ -15,6 +15,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 | [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Public | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
 | [China PBoC Gold Reserves Tracker](docs/tools/cn-track-pboc-gold.md) | Public | Tracks the People's Bank of China's official gold reserves month by month since 1977 (SAFE's monthly tables, with IMF data for the earlier history): holdings in tonnes and ounces, monthly additions, the buying streak and buying phases, and gold's value and share of official reserves. |
 | [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md) | Local only ([why](docs/tools/global-track-container-freight.md#why-this-tool-is-not-published)) | Tracks all 24 SSE shipping index sections and their components, including container, bulk, tanker, schedule reliability, trade and crew data, with latest periods, units and source update status. |
+| [Global Copper Market Tracker](docs/tools/global-track-copper.md) | Local only | Compares COMEX, LME and SHFE copper price references, exchange stocks and relative premiums, with currency, weight and VAT normalization, independent chart ranges and source freshness. |
 | [PE Valuation Calculator](docs/tools/pe-calculator.md) | Public | Models earnings growth and distributable profit ratios by stage, plus an independent long-run ratio and equity risk premium, to compare current PE across risk-free rates. Runs entirely in the browser, with annual calculations and CSV export. |
 
 ## Features
@@ -55,7 +56,7 @@ invest-diy/
 
 - [Architecture](docs/architecture.md): server, tool discovery, front-end kit, static export
 - [Development guide](docs/development.md): setup, conventions, adding a tool, static export
-- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [China PBoC Gold Reserves Tracker](docs/tools/cn-track-pboc-gold.md), [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md), [PE Valuation Calculator](docs/tools/pe-calculator.md)
+- Tools: [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md), [China PBoC Gold Reserves Tracker](docs/tools/cn-track-pboc-gold.md), [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md), [Global Copper Market Tracker](docs/tools/global-track-copper.md), [PE Valuation Calculator](docs/tools/pe-calculator.md)
 
 ## Contributing
 
