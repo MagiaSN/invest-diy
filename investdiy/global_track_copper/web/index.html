@@ -68,6 +68,24 @@
     <p class="note" data-i18n="balance.note"></p>
     <div id="balance-range"></div><div class="chart" id="balance-chart"></div>
   </section>
+  <!-- Disabled: no verified complete global data source for annual permanent
+       retirements, commissioning and physical construction starts (2026-11-15).
+       The reviewed project sample cannot represent worldwide totals.
+       Keep the section and its scripts inactive; see the tool documentation.
+  <section class="card" id="capacity" data-nav="capacity.title">
+    <div class="card-head"><h2 data-i18n="capacity.title"></h2><span class="unit" data-i18n="capacity.unit"></span></div>
+    <p class="note" data-i18n="capacity.note"></p>
+    <div id="capacity-range"></div>
+    <div class="legend" id="capacity-legend"></div><div class="chart" id="capacity-chart"></div>
+    <p class="note" id="capacity-asof"></p>
+    <div class="toolbar"><label><span data-i18n="capacity.year"></span><select id="capacity-year" disabled></select></label></div>
+    <div class="mine-table-wrap"><table class="mine-table capacity-table">
+      <thead><tr><th data-i18n="capacity.kind"></th><th data-i18n="capacity.project"></th><th data-i18n="mines.country"></th><th data-i18n="capacity.amount"></th></tr></thead>
+      <tbody id="capacity-events"></tbody>
+    </table></div>
+    <p class="note" id="capacity-detail-note" aria-live="polite"></p>
+  </section>
+  -->
   <section class="card" id="mines" data-nav="mines.title">
     <div class="card-head"><h2 data-i18n="mines.title"></h2><span id="mine-count" class="unit" aria-live="polite"></span></div>
     <p class="note" data-i18n="mines.note"></p>
@@ -96,6 +114,10 @@
 <script src="/static/kit.js"></script>
 <script src="strings.js"></script>
 <script src="fundamentals-strings.js"></script>
+<!-- Capacity scripts disabled with the section: missing complete data source.
+<script src="capacity-strings.js"></script>
+<script src="capacity.js"></script>
+-->
 <script src="app.js"></script>
 <script src="fundamentals.js"></script>
 </body>

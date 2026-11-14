@@ -58,6 +58,9 @@ select { font: inherit; padding: 6px 8px; background: var(--panel); color: var(-
 .mine-table th { font-weight: 500; color: var(--fg-muted); }
 .mine-table button { font: inherit; color: var(--s1); background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; }
 .mine-table small { display: block; color: var(--fg-muted); padding-top: 4px; }
+.capacity-table td:nth-child(2) { max-width: 560px; }
+.capacity-table small { line-height: 1.6; }
+.capacity-unknown { font-size: 15px; font-weight: 700; }
 .mine-table .selected { background: var(--panel); }
 .mine-pager { justify-content: flex-end; }
 .mine-pager button:disabled { opacity: .4; cursor: default; }

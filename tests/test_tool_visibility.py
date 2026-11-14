@@ -89,6 +89,10 @@ class VisibilityTests(unittest.TestCase):
 
 
 class ProjectVisibilityTests(unittest.TestCase):
+    def test_copper_is_local_and_excluded_from_public_discovery(self):
+        self.assertEqual(registry.discover()['global-track-copper'][0].visibility, 'local')
+        self.assertNotIn('global-track-copper', registry.discover(public_only=True))
+
     def test_freight_is_local_and_etf_is_public(self):
         all_tools = registry.discover()
         public_tools = registry.discover(public_only=True)

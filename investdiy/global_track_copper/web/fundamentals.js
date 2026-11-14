@@ -37,6 +37,8 @@
       b.onclick = () => { hidden.has(d.key) ? hidden.delete(d.key) : hidden.add(d.key); drawAnnual(kind); }; return b;
     }));
     if (kind === 'annual') {
+      $('annual-range').hidden = projecting;
+      $('annual-forecast-range').hidden = !projecting;
       $('annual-forecast-detail').hidden = !projecting;
       $('annual-forecast-status').textContent = forecasts.length ? '' : t('forecast.unavailable');
       $('annual-forecast-status').hidden = forecasts.length > 0;
@@ -116,15 +118,12 @@
       forecasts = parsed.filter((r) => r.year > annual.at(-1).year);
     }
     $('annual-forecast').disabled = !forecasts.length;
-    $('annual-forecast').checked = false;
+    $('annual-forecast').checked = forecasts.length > 0;
     for (const kind of ['annual', 'balance']) ranges[kind] = kit.rangePicker($(`${kind}-range`), { min: annual[0].d, max: annual.at(-1).d, initial: 'all', onChange: () => drawAnnual(kind) });
     if (forecasts.length) ranges.forecast = kit.rangePicker($('annual-forecast-range'), {
       min: annual[0].d, max: forecasts.at(-1).d, initial: 'all', onChange: () => drawAnnual('annual'),
     });
-    $('annual-forecast').onchange = () => {
-      $('annual-range').hidden = showForecast(); $('annual-forecast-range').hidden = !showForecast();
-      drawAnnual('annual');
-    };
+    $('annual-forecast').onchange = () => drawAnnual('annual');
     const draw = () => {
       drawAnnual('annual'); drawAnnual('balance'); const r = annual.at(-1);
       $('annual-latest').textContent = t('annual.latest', { year: r.year, mine: fmt(r.mine_production_t / 1e4, 2), supply: fmt(r.refined_production_t / 1e4, 2), demand: fmt(r.refined_usage_t / 1e4, 2) });

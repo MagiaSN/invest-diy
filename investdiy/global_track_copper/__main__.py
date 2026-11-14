@@ -35,6 +35,9 @@ def main():
     print(f'Wrote {len(daily)} daily rows to {data / "out"}')
     fundamental_errors = []
     if not args.skip_fetch or args.fundamentals or args.refresh_fundamentals:
+        # Capacity events are disabled: no verified complete global source for
+        # annual permanent closures, commissioning and physical construction starts.
+        # Retain capacity.py for offline review only; see the tool documentation.
         from . import fundamentals, mines, refining, forecasts
         for name, module in [('annual', fundamentals), ('mines', mines), ('refining', refining), ('forecasts', forecasts)]:
             try:
