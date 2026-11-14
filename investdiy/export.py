@@ -51,7 +51,7 @@ def build(dist: Path = DIST) -> list[str]:
         shutil.copytree(tool.web, out)
         if tool.data.exists():
             shutil.copytree(tool.data, out / "data", ignore=shutil.ignore_patterns("*.tmp"))
-        else:
+        elif tool.update:
             print(f"  ! {tool.slug} has no data/out/; its page will fail to load (run its update command first)")
         built.append(tool.slug)
 

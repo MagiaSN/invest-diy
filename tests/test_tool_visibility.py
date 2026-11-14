@@ -95,6 +95,7 @@ class ProjectVisibilityTests(unittest.TestCase):
         self.assertEqual(all_tools['global-track-container-freight'][0].visibility, 'local')
         self.assertNotIn('global-track-container-freight', public_tools)
         self.assertIn('ashare-track-national-team-etf', public_tools)
+        self.assertIn('pe-calculator', public_tools)
 
 
 if __name__ == '__main__':

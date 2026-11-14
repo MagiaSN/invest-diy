@@ -2,7 +2,7 @@
 
 TOOL = {
     "slug": "pe-calculator",
-    "visibility": "local",
+    "visibility": "public",
     "title": "PE 估值速算",
     "description": "分阶段设置利润增速与利润可分配比例，结合股权风险溢价比较不同无风险利率下的合理 PE。",
     "kind": "计算器",

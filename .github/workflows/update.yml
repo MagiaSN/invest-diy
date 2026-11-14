@@ -110,6 +110,9 @@ jobs:
           monthly_run = os.environ.get("UPDATE_SCHEDULE") == "53 15 7-10,15 * *"
           failed = []
           for tool, meta in discover(public_only=True).values():
+              if not tool.update:
+                  print(f"{tool.slug}: browser-only tool; no data update needed", flush=True)
+                  continue
               asof = tool.asof(meta)
               gold = tool.slug == "cn-track-pboc-gold"
               # Always rebuild missing outputs after cache eviction; manual runs force every tool.
@@ -148,7 +151,7 @@ jobs:
           from investdiy.registry import discover
           from investdiy.server import tools_payload
           tools = discover(public_only=True)
-          new = {t["slug"]: t["asof"] for t in tools_payload(tools)}
+          new = {t["slug"]: t["asof"] for t in tools_payload(tools) if t["update"]}
           # monthly tools set a longer limit in their TOOL dict (max_stale_days)
           limit = {slug: int(meta.get("max_stale_days", os.environ["MAX_STALE_DAYS"])) for slug, (_, meta) in tools.items()}
           try:

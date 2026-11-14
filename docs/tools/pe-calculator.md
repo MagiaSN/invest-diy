@@ -1,6 +1,6 @@
 # PE Valuation Calculator
 
-A browser-only calculator at `/pe-calculator/`. The home page discovers it automatically. It is local-only by default and does not enter public exports. No data download, update command, generated CSV source files or build step is needed; start the normal server:
+A browser-only calculator at `/pe-calculator/`. The home page lists it first. It is public and included in static exports and Surge deployments. No data download, update command, generated CSV source files or build step is needed; start the normal server:
 
 ```bash
 .venv/bin/python3 -m investdiy.server
