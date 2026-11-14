@@ -25,9 +25,10 @@
   </div>
   <section class="kpis" id="snapshot" aria-live="polite"></section>
   <section class="card" id="prices" data-nav="prices.title">
-    <div class="card-head"><h2 data-i18n="prices.title"></h2><span class="unit" data-i18n="usdT"></span></div>
+    <div class="card-head"><h2 data-i18n="prices.title"></h2><span class="unit" id="price-unit-label"></span></div>
     <div class="toolbar">
       <div id="prices-range"></div>
+      <label><span data-i18n="priceUnit"></span><select id="price-unit"><option value="usd_t" data-i18n="usdT"></option><option value="usd_lb" data-i18n="usdLb"></option><option value="cny_t" data-i18n="cnyT"></option></select></label>
       <label><span data-i18n="basis"></span><select id="basis"><option value="net" data-i18n="net"></option><option value="gross" data-i18n="gross"></option></select></label>
     </div>
     <p class="note" data-i18n="prices.note"></p>
@@ -43,9 +44,45 @@
     <div id="pair-latest" class="pair-latest"></div>
   </section>
   <section class="card" id="stocks" data-nav="stocks.title">
-    <div class="card-head"><h2 data-i18n="stocks.title"></h2><span class="unit" data-i18n="tonnes"></span></div>
+    <div class="card-head"><h2 data-i18n="stocks.title"></h2><span class="unit" data-i18n="tenThousandT"></span></div>
     <div id="stocks-range"></div><p class="note" data-i18n="stocks.note"></p>
     <div class="legend" id="stocks-legend"></div><div class="chart" id="stocks-chart"></div>
+  </section>
+  <section class="card" id="annual" data-nav="annual.title">
+    <div class="card-head"><h2 data-i18n="annual.title"></h2><span class="unit" data-i18n="tenThousandT"></span></div>
+    <p class="note" data-i18n="annual.note"></p>
+    <div class="toolbar">
+      <div><div id="annual-range"></div><div id="annual-forecast-range" hidden></div></div>
+      <label><input type="checkbox" id="annual-forecast" disabled aria-controls="annual-chart annual-forecast-detail"><span data-i18n="forecast.toggle"></span></label>
+    </div>
+    <p class="note" id="annual-forecast-status" aria-live="polite"></p>
+    <div id="annual-forecast-detail" hidden>
+      <p class="note" data-i18n="forecast.note"></p>
+      <div id="annual-forecast-milestones" class="forecast-milestones" aria-live="polite"></div>
+    </div>
+    <div class="legend" id="annual-legend"></div>
+    <div class="chart" id="annual-chart"></div><p class="note" id="annual-latest" aria-live="polite"></p>
+  </section>
+  <section class="card" id="balance" data-nav="balance.title">
+    <div class="card-head"><h2 data-i18n="balance.title"></h2><span class="unit" data-i18n="tenThousandT"></span></div>
+    <p class="note" data-i18n="balance.note"></p>
+    <div id="balance-range"></div><div class="chart" id="balance-chart"></div>
+  </section>
+  <section class="card" id="mines" data-nav="mines.title">
+    <div class="card-head"><h2 data-i18n="mines.title"></h2><span id="mine-count" class="unit" aria-live="polite"></span></div>
+    <p class="note" data-i18n="mines.note"></p>
+    <div class="mine-filters">
+      <label><span data-i18n="mines.search"></span><input type="search" id="mine-search" autocomplete="off"></label>
+      <label><span data-i18n="mines.country"></span><select id="mine-country"></select></label>
+      <label><span data-i18n="mines.status"></span><select id="mine-status"></select></label>
+    </div>
+    <div class="map-tools"><button type="button" id="map-in" data-i18n-aria-label="map.in">+</button><button type="button" id="map-out" data-i18n-aria-label="map.out">−</button><button type="button" id="map-reset" data-i18n="map.reset"></button><label><input type="checkbox" id="map-labels"><span data-i18n="map.labels"></span></label></div>
+    <div class="mine-layout"><div id="mine-map"></div><aside id="mine-detail" aria-live="polite"></aside></div>
+    <div class="legend" id="mine-legend"></div>
+    <div id="mine-size-legend" class="mine-size-legend"></div>
+    <p class="note" data-i18n="mines.sizeNote"></p>
+    <div class="mine-table-wrap"><table class="mine-table"><thead><tr><th data-i18n="mines.name"></th><th data-i18n="mines.country"></th><th data-i18n="mines.status"></th><th data-i18n="mines.company"></th><th data-i18n="mines.production"></th></tr></thead><tbody id="mine-rows"></tbody></table></div>
+    <div class="mine-pager"><button type="button" id="mine-prev" data-i18n="mines.prev"></button><span id="mine-page" aria-live="polite"></span><button type="button" id="mine-next" data-i18n="mines.next"></button></div>
   </section>
   <section class="card" id="about" data-nav="about.title">
     <h2 data-i18n="about.title"></h2>
@@ -58,6 +95,8 @@
 <script src="/static/site.js"></script>
 <script src="/static/kit.js"></script>
 <script src="strings.js"></script>
+<script src="fundamentals-strings.js"></script>
 <script src="app.js"></script>
+<script src="fundamentals.js"></script>
 </body>
 </html>

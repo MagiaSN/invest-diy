@@ -15,6 +15,8 @@ def main():
     parser.add_argument('--skip-fetch', action='store_true', help='recompute stored observations without network requests')
     parser.add_argument('--import-csv', type=Path, help='import validated observations after fetching; matching dates are revised')
     parser.add_argument('--backfill-stocks', action='store_true', help='fill stock gaps from completed COCHILCO monthly reports since --start; preserve existing history')
+    parser.add_argument('--fundamentals', action='store_true', help='build annual supply/demand, refining, reviewed forecasts and mines, including with --skip-fetch; reuse downloaded files')
+    parser.add_argument('--refresh-fundamentals', action='store_true', help='download annual, refining and mine sources again; revalidate local forecast reviews; implies --fundamentals')
     parser.add_argument('--strict', action='store_true', help='exit nonzero for fetch failures, partial sources, missing or stale series')
     args = parser.parse_args()
     data = ROOT / 'data'
@@ -31,9 +33,21 @@ def main():
         backfill_status = backfill.run(str(args.start), data)
     daily = export(data)
     print(f'Wrote {len(daily)} daily rows to {data / "out"}')
+    fundamental_errors = []
+    if not args.skip_fetch or args.fundamentals or args.refresh_fundamentals:
+        from . import fundamentals, mines, refining, forecasts
+        for name, module in [('annual', fundamentals), ('mines', mines), ('refining', refining), ('forecasts', forecasts)]:
+            try:
+                rows = module.run(data, refresh=args.refresh_fundamentals)
+                print(f'Wrote {len(rows)} {name} rows')
+            except Exception as exc:
+                fundamental_errors.append(name)
+                print(f'{name}: {exc}; previous output retained')
     if not daily:
         return 1
     if args.strict:
+        if fundamental_errors:
+            return 1
         from .model import SERIES
         rows = read_rows(data / 'history.csv')
         for series, (_, limit) in SERIES.items():
