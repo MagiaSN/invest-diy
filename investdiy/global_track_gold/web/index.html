@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="page.title">全球黄金数据跟踪</title>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+<a class="topbar-home" href="/" data-i18n="common.home"></a><span class="topbar-sep">/</span>
+<span class="topbar-title" data-i18n="page.title"></span><span class="topbar-right" id="asof"></span>
+</div><nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav></header>
+<main class="page">
+<div><h1 class="page-title" data-i18n="page.title"></h1><p class="lede" data-i18n="page.intro"></p><p class="note" id="message" role="status"></p></div>
+<section class="kpis" id="kpis"></section>
+<section class="card" id="stocks" data-nav="stocks.title">
+<div class="card-head"><h2 data-i18n="stocks.title"></h2><div class="card-tools"><div id="stocks-range"></div><span class="dl" data-files="stocks"></span></div></div>
+<p class="note" data-i18n="stocks.note"></p>
+<p class="lede" id="stocks-latest"></p>
+<p class="lede" id="stocks-growth" aria-live="polite"></p>
+<p class="note" data-i18n="stocks.growth.note"></p>
+<div class="legend" id="stocks-legend"></div><div class="chart loading" id="stocks-chart"></div>
+</section>
+<section class="card" id="market" data-nav="market.title">
+<div class="card-head"><h2 data-i18n="market.title"></h2><span class="dl" data-files="annual market stocks"></span></div>
+<p class="note" data-i18n="market.note"></p>
+<div class="controls"><label><span data-i18n="frequency"></span><select id="frequency"><option value="annual" data-i18n="annual"></option><option value="monthly" data-i18n="monthly"></option></select></label>
+<label><span data-i18n="metric"></span><select id="market-metric"><option value="value" data-i18n="market.value"></option><option value="ratio" data-i18n="market.ratio"></option></select></label><div id="market-range"></div></div>
+<p class="note" id="market-period"></p><div class="legend" id="market-legend"></div><div class="chart loading" id="market-chart"></div>
+</section>
+<section class="card" id="oil" data-nav="oil.title">
+<div class="card-head"><h2 data-i18n="oil.title"></h2><div id="oil-range"></div></div>
+<p class="note" data-i18n="oil.note"></p><div class="legend" id="oil-legend"></div><div class="chart loading" id="oil-chart"></div>
+</section>
+<section class="card" id="silver" data-nav="silver.title">
+<div class="card-head"><h2 data-i18n="silver.title"></h2><div class="card-tools"><div id="silver-range"></div><span class="dl" data-files="prices"></span></div></div>
+<p class="note" data-i18n="silver.note"></p><div class="legend" id="silver-legend"></div><div class="chart loading" id="silver-chart"></div>
+</section>
+<section class="card" id="demand" data-nav="demand.title">
+<div class="card-head"><h2 data-i18n="demand.title"></h2><div class="card-tools"><div id="demand-range"></div><span class="dl" data-files="demand"></span></div></div>
+<div class="controls"><label><span data-i18n="demand.scope"></span><select id="demand-scope"><option value="core" data-i18n="demand.core"></option><option value="total" data-i18n="demand.total"></option></select></label></div>
+<p class="note" data-i18n="demand.note"></p><p class="note" id="demand-scope-note"></p>
+<p class="lede" id="demand-summary"></p>
+<div class="legend" id="demand-legend"></div><div class="chart loading" id="demand-chart"></div>
+<p class="note"><a href="https://www.gold.org/goldhub/research/gold-demand-trends" target="_blank" rel="noopener" data-i18n="source.demand"></a> · <span data-i18n="demand.vintages"></span></p>
+</section>
+<section class="card" id="economies" data-nav="reserves.title">
+<div class="card-head"><h2 data-i18n="reserves.title"></h2><span class="dl" data-files="reserves"></span></div>
+<p class="note" data-i18n="reserves.note"></p>
+<div class="controls"><button id="select-all" type="button" data-i18n="select.all"></button><button id="select-default" type="button" data-i18n="select.default"></button><button id="select-none" type="button" data-i18n="select.none"></button></div>
+<div id="countries" class="countries" role="group" data-i18n-aria-label="select.countries"></div>
+</section>
+<section class="card" id="holdings" data-nav="holdings.title">
+<div class="card-head"><h2 data-i18n="holdings.title"></h2><div id="holdings-range"></div></div>
+<div class="controls"><label><span data-i18n="metric"></span><select id="holdings-metric"><option value="gold_t" data-i18n="holdings.level"></option><option value="change_t" data-i18n="holdings.change"></option></select></label></div>
+<div class="legend" id="holdings-legend"></div><div class="chart loading" id="holdings-chart"></div>
+</section>
+<section class="card" id="share" data-nav="share.title">
+<div class="card-head"><h2 data-i18n="share.title"></h2><div id="share-range"></div></div>
+<div class="controls"><label><span data-i18n="denominator"></span><select id="share-metric"><option value="gold_total_pct" data-i18n="share.total"></option><option value="gold_fx_pct" data-i18n="share.fx"></option></select></label></div>
+<p class="note" id="share-note"></p><div class="legend" id="share-legend"></div><div class="chart loading" id="share-chart"></div>
+</section>
+<section class="card" id="snapshot" data-nav="snapshot.title">
+<div class="card-head"><h2 data-i18n="snapshot.title"></h2></div><p class="note" data-i18n="snapshot.note"></p>
+<div class="tablebox"><table class="table"><thead><tr><th data-i18n="country"></th><th data-i18n="date"></th><th data-i18n="tonnes"></th><th data-i18n="change"></th><th data-i18n="yoy"></th><th data-i18n="share.date"></th><th data-i18n="share.total"></th><th data-i18n="share.fx"></th></tr></thead><tbody id="snapshot-body"></tbody></table></div>
+</section>
+<section class="card" id="about" data-nav="about.title">
+<div class="card-head"><h2 data-i18n="about.title"></h2><span class="dl" data-files="sources"></span></div>
+<div class="tablebox"><table class="table"><thead><tr><th data-i18n="source"></th><th data-i18n="latest"></th><th data-i18n="status"></th><th data-i18n="fetched"></th></tr></thead><tbody id="source-body"></tbody></table></div>
+<ol class="method"><li data-i18n="about.stock"></li><li data-i18n="about.debt"></li><li data-i18n="about.ratios"></li><li data-i18n="about.reserves"></li><li data-i18n="about.limits"></li></ol>
+</section>
+</main>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script><script src="/static/i18n.js"></script><script src="/static/site.js"></script><script src="/static/kit.js"></script><script src="strings.js"></script><script src="app.js"></script>
+</body></html>

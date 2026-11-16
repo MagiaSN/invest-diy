@@ -6,7 +6,6 @@
   const { num, fmtPct, signCls } = kit;
   const t = (k, v) => i18n.t(k, v);
   const isZh = () => i18n.lang === 'zh';
-  const UPDATE_CMD = 'python -m investdiy.cn_track_pboc_gold';
   const STALE_WEEKDAYS = 32;   // SAFE publishes a month-end around the 7th of the next month: normally at most ~27 weekdays old
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -302,7 +301,7 @@
     kit.onRedraw(drawAll);
   }).catch((err) => {
     console.error(err);
-    const show = () => { $('take-now').textContent = t('loadError', { cmd: UPDATE_CMD }); };
+    const show = () => { $('take-now').textContent = t('loadError'); };
     show();
     i18n.onChange(show);
     BOXES.forEach((id) => kit.fail($(id)));

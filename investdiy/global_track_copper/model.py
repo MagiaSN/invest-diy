@@ -6,7 +6,7 @@ from datetime import date
 import math
 from pathlib import Path
 
-from ..common.csvio import read_rows, write_rows
+from ..common.csvio import atomic_csv, read_rows
 
 ROOT = Path(__file__).resolve().parent
 POUNDS_PER_TONNE = 1000 / 0.45359237
@@ -56,12 +56,6 @@ def merge(old, new):
     result = {(r['series'], r['date']): r for r in validate(old)}
     result.update({(r['series'], r['date']): r for r in validate(new)})
     return sorted(result.values(), key=lambda r: (r['series'], r['date']))
-
-
-def atomic_csv(path, rows, fields):
-    tmp = path.with_suffix('.tmp')
-    write_rows(tmp, rows, fields)
-    tmp.replace(path)
 
 
 def vat_rate(day):

@@ -21,3 +21,10 @@ def write_rows(path: Path, rows: list[dict], fields: list[str], sort_by: tuple[s
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
+
+
+def atomic_csv(path: Path, rows: list[dict], fields: list[str]) -> None:
+    """Replace a CSV only after its complete contents have been written."""
+    tmp = path.with_suffix('.tmp')
+    write_rows(tmp, rows, fields)
+    tmp.replace(path)

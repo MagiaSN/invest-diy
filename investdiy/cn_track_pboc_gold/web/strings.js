@@ -23,7 +23,7 @@ i18n.add({
     'take.ytd': '今年以来累计增持 {ytd}。按月末估值，黄金储备价值 {usd}，占官方储备资产的 {share}。',
     'take.src': '最新数据来自国家外汇管理局 {d} 发布的官方储备资产表，通常每月 7 日前后公布上月末数据。',
     'take.srcImf': '最新数据来自 IMF International Liquidity 数据库（国家外汇管理局数据暂时无法获取）。',
-    'loadError': '数据加载失败，请先运行 {cmd} 生成 data/out/。',
+    'loadError': '数据暂不可用或加载失败，请稍后重试。',
 
     // holdings
     'hold.h2': '黄金储备持有量',
@@ -90,7 +90,7 @@ i18n.add({
     'take.ytd': 'it has added {ytd} so far this year. At month-end valuation the gold is worth {usd}, {share} of official reserve assets.',
     'take.src': 'The latest figures come from the official reserve assets table published by SAFE on {d}; SAFE publishes each month-end around the 7th of the next month.',
     'take.srcImf': 'The latest figures come from the IMF International Liquidity database (SAFE data could not be fetched).',
-    'loadError': 'Data failed to load. Run {cmd} first to generate data/out/.',
+    'loadError': 'Data is unavailable or could not be loaded. Please try again later.',
 
     'hold.h2': 'Gold holdings',
     'hold.note': 'Official gold reserves at each month-end (tonnes). Before July 2015 holdings were disclosed only occasionally, so each step is a one-off disclosure of years of buying; monthly figures start in July 2015. Bands mark the monthly buying phases since 2015.',

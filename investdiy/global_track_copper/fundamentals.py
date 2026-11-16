@@ -5,48 +5,21 @@ mix mine output with refined consumption when calculating the market balance.
 """
 
 from datetime import date
-from io import BytesIO
 import math
 import re
-import xml.etree.ElementTree as ET
-from zipfile import ZipFile
 
 from ..common.net import get
+from ..common.xlsx import worksheets
 from .model import atomic_csv
 
 YEARBOOK = ('https://www.cochilco.cl/web/download/1036/2026/16850/'
             'base-de-datos-anuario-de-estadisticas-cochilco-2000-2025.xlsx')
-NS = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 TITLES = {
     'World Copper Mine Production': 'mine_production_t',
     'World Refined Copper Production': 'refined_production_t',
     'World Refined Copper Consumption': 'refined_usage_t',
 }
 FIELDS = ['year', *TITLES.values(), 'balance_t', 'source', 'edition']
-
-
-def worksheets(content):
-    """Yield sparse rows keyed by Excel column letters, preserving empty cells."""
-    with ZipFile(BytesIO(content)) as archive:
-        shared = [''.join(n.itertext()) for n in ET.fromstring(archive.read('xl/sharedStrings.xml'))]
-        for name in archive.namelist():
-            if not re.fullmatch(r'xl/worksheets/sheet\d+\.xml', name):
-                continue
-            rows = []
-            for row in ET.fromstring(archive.read(name)).findall('.//s:row', NS):
-                values = {}
-                for cell in row.findall('s:c', NS):
-                    value = cell.find('s:v', NS)
-                    if value is not None:
-                        value = shared[int(value.text)] if cell.get('t') == 's' else value.text
-                    elif cell.get('t') == 'inlineStr':
-                        value = ''.join(cell.find('s:is', NS).itertext())
-                    else:
-                        continue
-                    values[re.sub(r'\d', '', cell.get('r'))] = value.strip()
-                if values:
-                    rows.append(values)
-            yield rows
 
 
 def annual_table(rows):

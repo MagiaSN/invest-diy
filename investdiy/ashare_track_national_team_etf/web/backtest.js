@@ -9,7 +9,6 @@
   const t = (k, v) => i18n.t(k, v);
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-  const UPDATE_CMD = 'python -m investdiy.ashare_track_national_team_etf';
   const SPLIT = '2024-01-01';  // keep in sync with SPLIT in backtest.py
   const ACCTS = ['nt', 'mr'];
   const PERIODS = ['all', 'pre', 'post'];
@@ -281,7 +280,7 @@
       kit.onRedraw(drawAll);
     }).catch((err) => {
       console.error(err);
-      const show = () => { $('take-nt').textContent = t('loadError', { cmd: UPDATE_CMD }); };
+      const show = () => { $('take-nt').textContent = t('loadError'); };
       show();
       i18n.onChange(show);
       ['pnl-box', 'hold-box'].forEach((id) => kit.fail($(id)));

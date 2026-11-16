@@ -31,7 +31,7 @@ i18n.add({
     'take.floor': '据定期报告，国家队 {date} 在池内持有约 {base}；按份额地板，此后至少已减持 {pct}',
     'take.cap': '，按 {date} 机构持有上限至少已减持 {pct}',
     'take.end': '。',
-    'loadError': '数据加载失败，请先运行 {cmd} 生成 data/out/。',
+    'loadError': '数据暂不可用或加载失败，请稍后重试。',
 
     // cumulative
     'cum.h2': '累计净申赎与沪深300',
@@ -145,7 +145,7 @@ i18n.add({
     'take.floor': 'Periodic reports show the national team held about {base} in these ETFs on {date}; by the share floor, at least {pct} has been sold since',
     'take.cap': ', and by the {date} institutional-holdings cap, at least {pct}',
     'take.end': '.',
-    'loadError': 'Data failed to load. Run {cmd} first to generate data/out/.',
+    'loadError': 'Data is unavailable or could not be loaded. Please try again later.',
 
     'cum.h2': 'Cumulative net creation vs. CSI 300',
     'cum.note': 'Cumulative net creation over the selected range (from its first day, left axis, CNY bn) and the CSI 300 index (right axis). Shaded bands are entry and exit waves.',

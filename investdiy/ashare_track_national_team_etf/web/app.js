@@ -14,7 +14,6 @@
   const famName = (zh) => tv('f.', zh);
   const CAL_CAP = 600; // calendar colour scale saturation point (yi)
   const TOP_N = 3;     // number of contributing ETFs listed in the calendar tooltip
-  const UPDATE_CMD = 'python -m investdiy.ashare_track_national_team_etf';
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const inRange = ([s, e]) => (r) => r.d >= s && r.d <= e;
@@ -510,7 +509,7 @@
     kit.onRedraw(drawAll);
   }).catch((err) => {
     console.error(err);
-    const show = () => { $('take-now').textContent = t('loadError', { cmd: UPDATE_CMD }); };
+    const show = () => { $('take-now').textContent = t('loadError'); };
     show();
     i18n.onChange(show);
     ['cal-box', 'cum-box', 'mon-box', 'sm-box', 'hold-box', 'floor-box'].forEach((id) => kit.fail($(id)));

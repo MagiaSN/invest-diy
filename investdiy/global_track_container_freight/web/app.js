@@ -4,7 +4,6 @@
   const t = (key, values) => i18n.t(key, values);
   const $ = (id) => document.getElementById(id);
   const pct = (v) => (isFinite(v) ? fmtPct(v) : t('t.none'));
-  const UPDATE_CMD = 'python -m investdiy.global_track_container_freight --latest-only';
   let D = null;
   const charts = [];
 
@@ -91,7 +90,7 @@
     charts.splice(0).forEach((chart) => chart.destroy());
     $('add-chart').disabled = true;
     const show = () => {
-      $('take-now').textContent = t('loadError', { cmd: UPDATE_CMD });
+      $('take-now').textContent = t('loadError');
       $('chart-message').textContent = t('common.failed');
     };
     show(); i18n.onChange(show);
