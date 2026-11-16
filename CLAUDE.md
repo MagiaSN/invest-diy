@@ -19,6 +19,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 ## Rules
 
+- **Data refresh requests follow the [Data update SOP](docs/development.md#data-update-sop)**: first pull the latest available GitHub Actions data, including separate collection workflows; then run local updates only for tools not covered by Actions. Skip tools without an update command and report synchronization failures instead of silently treating covered tools as uncovered.
 - **One tool, one sub-package** under `investdiy/`; shared logic goes in `investdiy/common/` (Python) or `investdiy/web/static/` (front end).
 - **Pages are local only**: no CDNs; vendor libraries under `investdiy/web/static/vendor/`.
 - **Every page is bilingual** (English and Chinese): static text via `data-i18n` keys, dynamic text via `i18n.t()`, metadata via `title_en` / `description_en` / `kind_en`.

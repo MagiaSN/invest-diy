@@ -72,6 +72,77 @@ Further pages of the same tool sit next to `index.html` (for example `web/backte
 - Open the page in both languages and at a narrow width (about 400px); tables may scroll horizontally, the page itself should not.
 - `node --check <file>.js` catches syntax errors in page scripts; a broken dictionary file stops the whole page from translating.
 
+## Data update SOP
+
+When the user asks to update data, follow this order: **pull the latest available GitHub Actions data first, then update tools not covered by Actions locally**. Apply this to all tools unless the request names a narrower scope. A routine local refresh does not trigger workflows or publish the site.
+
+### 1. Check coverage and prerequisites
+
+Read `.github/workflows/` and the tools returned by `investdiy.registry.discover()` before deciding which tools need local fetching. Coverage depends on the workflow's actual collection logic, not just a tool's `visibility`: a local tool can have a dedicated workflow. Use the repository's default branch unless the user specifies another branch. Run commands from the repository root using `.venv/bin/python3`; Actions downloads require authenticated `gh` with repository/Actions read access.
+
+Current coverage:
+
+| Tool | Data source for a routine refresh |
+|---|---|
+| `ashare-track-national-team-etf` | `update.yml` → `site` artifact |
+| `cn-track-pboc-gold` | `update.yml` → `site` artifact |
+| `global-track-container-freight` | `sse-update.yml` → `sse-history-encrypted` artifact, imported with the existing sync command |
+| `global-track-gold` | Local update command; no Actions coverage |
+| `global-track-copper` | Local update command; no Actions coverage |
+| `pe-calculator` | Browser-only; no data update needed |
+
+### 2. Pull Actions data
+
+**Public tools:** select the newest retained `site` artifact from a completed `update.yml` run on the default branch. The existing helper checks the workflow, repository, branch and artifact expiry. For example, inspect the selected run with:
+
+```bash
+.venv/bin/python3 - <<'PY'
+from investdiy.common.github_actions import latest_artifact
+artifact = latest_artifact("MagiaSN/invest-diy", "update.yml", "site")
+print("Run ID:", artifact["workflow_run"]["id"])
+print("Run URL:", artifact["run_url"])
+print("Conclusion:", artifact["run_conclusion"])
+PY
+```
+
+Download that run's artifact into a new staging directory, substituting the printed run ID:
+
+```bash
+refresh_stage=$(mktemp -d /tmp/invest-diy-refresh.XXXXXX)
+gh run download RUN_ID --repo MagiaSN/invest-diy --name site --dir "$refresh_stage"
+```
+
+Inspect the staged `api/tools.json` and each requested tool's `<slug>/data/` files. Confirm required CSVs, headers and data dates against the local tool before installing anything. Back up the existing `investdiy/<package>/data/out/` outside the data directory, then copy the validated `<slug>/data/` snapshot into that tool's `data/out/`. Preserve newer local data and local-only history; if dates or coverage regress, keep the local copy and report the discrepancy. Keep each tool's outputs consistent rather than mixing files from different snapshots. Do not copy artifact pages or scripts over source files, or replace raw data/cache directories: `site` contains dashboard outputs, not the complete Actions cache.
+
+The `site` artifact is currently retained for seven days. A failed publication job can still leave valid exported data; check the update/export jobs and artifact contents instead of rejecting a run solely because publication failed. Record the run URL and imported data dates. `git pull` does not retrieve these ignored data files.
+
+**Shipping:** use the existing importer, which downloads, decrypts, merges local history and rebuilds outputs:
+
+```bash
+.venv/bin/python3 -m investdiy.global_track_container_freight.sync
+```
+
+This requires `gpg` and the local key file `~/.local/share/invest-diy/sse-data-passphrase`; never print the key or put it on the command line. See [shipping synchronization](tools/global-track-container-freight.md#pull-actions-data-to-the-local-dashboard) for overrides, backup behavior and validation. The importer can retain successful source updates from a partially failed collection run; report those failures along with source dates/status.
+
+Missing/expired artifacts, authentication failures or a missing decryption key are synchronization failures, not evidence that a tool lacks Actions coverage. Preserve existing data, continue with independent tools, and report the failure. Do not silently fall back to a full local fetch for an Actions-covered tool; follow an explicit user request for such a fallback.
+
+### 3. Update uncovered tools locally
+
+After attempting the Actions imports, run the `TOOL["update"]` command for each uncovered tool in scope, replacing its Python executable with `.venv/bin/python3` and preserving any arguments. With the current coverage, run both commands even if one fails:
+
+```bash
+.venv/bin/python3 -m investdiy.global_track_gold
+.venv/bin/python3 -m investdiy.global_track_copper
+```
+
+Skip tools without an update command. Do not refetch ETF, PBoC gold or shipping merely because their imported data uses a different release cadence. Recheck this list whenever workflows or tools change.
+
+### 4. Verify and report
+
+Inspect each updated tool's output dates and source status; a zero exit code alone does not prove every source refreshed successfully. Distinguish the last check time from the actual observation period, and report retained older data or partial failures. Start the local server if needed and verify that `curl -s -o /dev/null -w "%{http_code}" http://localhost:8765/api/tools.json` prints `200`. Data-only changes need a page refresh, not a server restart.
+
+Report which tools were imported from Actions (with run links), which were updated locally, which needed no update, and any failures or stale sources. Keep downloaded data and backups out of git; inspect `git status --short` before finishing.
+
 ## Static export
 
 Only tools with `TOOL["visibility"] = "public"` are exported as static files for Surge or another static host. The local server continues to serve both public and local tools:
