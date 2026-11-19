@@ -1,0 +1,5 @@
+"""Refresh market data and rebuild the local calculator."""
+from .build import main
+
+if __name__ == "__main__":
+    main()

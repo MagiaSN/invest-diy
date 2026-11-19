@@ -89,6 +89,7 @@ Current coverage:
 | `global-track-container-freight` | `sse-update.yml` → `sse-history-encrypted` artifact, imported with the existing sync command |
 | `global-track-gold` | Local update command; no Actions coverage |
 | `global-track-copper` | Local update command; no Actions coverage |
+| `company-profit` | `update.yml` → `site` artifact; metal prices and FX snapshot |
 | `pe-calculator` | Browser-only; no data update needed |
 
 ### 2. Pull Actions data
@@ -128,14 +129,14 @@ Missing/expired artifacts, authentication failures or a missing decryption key a
 
 ### 3. Update uncovered tools locally
 
-After attempting the Actions imports, run the `TOOL["update"]` command for each uncovered tool in scope, replacing its Python executable with `.venv/bin/python3` and preserving any arguments. With the current coverage, run both commands even if one fails:
+After attempting the Actions imports, run the `TOOL["update"]` command for each uncovered tool in scope, replacing its Python executable with `.venv/bin/python3` and preserving any arguments. With the current coverage, run each requested local update independently even if another fails:
 
 ```bash
 .venv/bin/python3 -m investdiy.global_track_gold
 .venv/bin/python3 -m investdiy.global_track_copper
 ```
 
-Skip tools without an update command. Do not refetch ETF, PBoC gold or shipping merely because their imported data uses a different release cadence. Recheck this list whenever workflows or tools change.
+Skip tools without an update command. Do not refetch ETF, PBoC gold, company-profit or shipping merely because their imported data uses a different release cadence. Recheck this list whenever workflows or tools change.
 
 ### 4. Verify and report
 
@@ -160,12 +161,13 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF, China PBoC gold reserves and the PE calculator are public; global gold, copper and the SSE shipping tracker are local. Browser-only tools without an update command skip data refresh and freshness checks. The shipping tracker's [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
+Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF, China PBoC gold reserves, the PE calculator and company-profit are public; global gold, copper and the SSE shipping tracker are local. Browser-only tools without an update command skip data refresh and freshness checks. The shipping tracker's [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
 
 `.github/workflows/update.yml` runs tools due for refresh, checks every public tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
 
 - **ETF**: 23:47 Monday-Friday for preliminary units of day T, and 09:37 Tuesday-Saturday for final units published on T+1 (Beijing time).
 - **Gold**: 23:53 on the 7th of each month, retries on the 8th-10th only while the previous month's figures are missing, and an unconditional revision check on the 15th. These runs include weekends; ETF fetching is skipped on the gold schedule.
+- **Company profit**: 09:17 and 16:17 Monday–Friday (Beijing time) refresh all four metal quotes and FX, then publish. These slots do not refetch ETF or PBoC gold with complete cached outputs; company-profit uses its cache on their slots. Its historical baseline bootstraps from a checksum-pinned public release asset, so CI needs no private research checkout.
 - **Manual and bootstrap**: "Run workflow" forces all public tools to update, optionally without publication. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
 
 
@@ -180,5 +182,5 @@ Only tools explicitly marked `visibility: public` enter the public export and pu
   gh release delete seed-data --yes        # after the run has saved the cache
   ```
 - **Run summary**: the Actions summary lists every tool's updated date, live date and maximum allowed age. Reruns save a separate cache so a retry can retain newly fetched data.
-- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (or the tool's `max_stale_days`, such as 45 for monthly data) (fetch errors are logged but do not stop an update, so this is how a blocked data source shows up). GitHub emails the repository owner when a run fails.
+- **Safety checks**: the run does not publish if a tool's "data as of" date is older than the live site's, and fails when a tool's data has not advanced for more than 10 days (or the tool's `max_stale_days`, such as 45 for monthly data) (some legacy collectors log source failures without stopping; company-profit fails immediately if any quote or FX collection fails). GitHub emails the repository owner when a run fails.
 - **Inactivity**: GitHub disables scheduled workflows in public repositories after 60 days without commits; re-enable it from the Actions tab.

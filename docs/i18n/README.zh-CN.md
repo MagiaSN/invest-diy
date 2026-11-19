@@ -12,12 +12,13 @@
 
 | 工具 | 可见范围 | 做什么 |
 |---|---|---|
+| [PE 估值速算](../tools/pe-calculator.md) | 公开工具 | 分阶段设置利润增速与利润可分配比例，单独设置长期比例及股权风险溢价，比较不同无风险利率下的当前合理 PE。完全在浏览器计算，支持逐年明细和 CSV 导出。 |
+| [公司利润预测](../tools/company-profit.md) | 公开工具 | 基于业务量、价格和成本预测公司利润，支持参数调整、敏感性分析与历史回测；紫金矿业模型默认使用 2026 年金、铜、银产量目标和最新价格快照，锌产量需另行设定期间口径。 |
 | [A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md) | 公开工具 | 用交易所每日公布的 ETF 份额，推算"国家队"（中央汇金、中证金融等）重仓宽基 ETF 的每日净申赎，识别进出场波段；由基金定期报告推出其减持的硬下界；并回测一个"每晚估计国家队仓位、次日跟上"的策略。 |
 | [中国央行黄金储备数据跟踪](../tools/cn-track-pboc-gold.md) | 公开工具 | 按月跟踪中国人民银行的官方黄金储备，数据从 1977 年起（近年取国家外汇管理局月度表，更早的历史取 IMF 数据），包括持有量（吨 / 盎司）、每月增持、连续增持月数与增持阶段，以及黄金储备的价值和占官方储备的比例。 |
 | [全球航运指数数据跟踪](../tools/global-track-container-freight.md) | 本地工具（[原因与风险](../tools/global-track-container-freight.md#why-this-tool-is-not-published)） | 跟踪 SSE 全部 24 个航运指数栏目及分项，覆盖集装箱、散货、油轮、准班率、航贸与海员薪酬，展示最新发布期、单位及各数据源的更新状态。 |
 | [全球黄金数据跟踪](../tools/global-track-gold.md) | 仅本地 | 对比全球黄金估算市值与美债规模，跟踪月度金油比、金银比，展示年度黄金需求分类柱状图，以及18个主要经济体的黄金持有量、增减和储备占比。 |
 | [全球铜市场数据跟踪](../tools/global-track-copper.md) | 本地工具 | 比较 COMEX、LME、上期所铜价、库存与溢价，查看全球年度供需及铜矿地图，展示矿山状态与确认日期、所属公司和披露产量。 |
-| [PE 估值速算](../tools/pe-calculator.md) | 公开工具 | 分阶段设置利润增速与利润可分配比例，单独设置长期比例及股权风险溢价，比较不同无风险利率下的当前合理 PE。完全在浏览器计算，支持逐年明细和 CSV 导出。 |
 
 ## 特点
 
@@ -59,7 +60,7 @@ invest-diy/
 
 - [架构](../architecture.md)：服务器、工具发现、前端组件、静态导出
 - [开发指南](../development.md)：环境、约定、新增工具、静态导出
-- 工具：[全球黄金数据跟踪](../tools/global-track-gold.md)、[A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md)、[中国央行黄金储备数据跟踪](../tools/cn-track-pboc-gold.md)、[全球航运指数数据跟踪](../tools/global-track-container-freight.md)、[全球铜市场数据跟踪](../tools/global-track-copper.md)、[PE 估值速算](../tools/pe-calculator.md)
+- 工具：[全球黄金数据跟踪](../tools/global-track-gold.md)、[A股国家队宽基ETF数据跟踪](../tools/ashare-track-national-team-etf.md)、[中国央行黄金储备数据跟踪](../tools/cn-track-pboc-gold.md)、[全球航运指数数据跟踪](../tools/global-track-container-freight.md)、[全球铜市场数据跟踪](../tools/global-track-copper.md)、[PE 估值速算](../tools/pe-calculator.md)、[公司利润预测](../tools/company-profit.md)
 
 ## 参与贡献
 

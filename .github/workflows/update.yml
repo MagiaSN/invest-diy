@@ -21,6 +21,9 @@ on:
     - cron: "37 1 * * 2-6"
     # Gold releases: 23:53 Beijing on the 7th, conditional retries on the 8th-10th, revision check on the 15th.
     - cron: "53 15 7-10,15 * *"
+    # Company profit metal prices and FX: 09:17 and 16:17 Beijing, Mon-Fri.
+    - cron: "17 1 * * 1-5"
+    - cron: "17 8 * * 1-5"
   workflow_dispatch:
     inputs:
       publish:
@@ -101,26 +104,19 @@ jobs:
         run: |
           python - <<'EOF'
           import os, shlex, subprocess, sys
-          from datetime import datetime, timedelta
+          from datetime import datetime
           from zoneinfo import ZoneInfo
           from investdiy.registry import discover
+          from investdiy.common.update_schedule import due_for_refresh
           today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
-          target = (today.replace(day=1) - timedelta(days=1)).isoformat()
-          manual = os.environ["UPDATE_EVENT"] == "workflow_dispatch"
-          monthly_run = os.environ.get("UPDATE_SCHEDULE") == "53 15 7-10,15 * *"
           failed = []
           for tool, meta in discover(public_only=True).values():
               if not tool.update:
                   print(f"{tool.slug}: browser-only tool; no data update needed", flush=True)
                   continue
               asof = tool.asof(meta)
-              gold = tool.slug == "cn-track-pboc-gold"
-              # Always rebuild missing outputs after cache eviction; manual runs force every tool.
-              bootstrap = not asof or not all((tool.data / name).exists() for name in
-                  (["kpi.csv", "monthly.csv", "annual.csv", "phases.csv"] if gold else []))
-              due = manual or bootstrap or (
-                  monthly_run and gold and (today.day in (7, 15) or asof < target)
-              ) or (not monthly_run and not gold)
+              due = due_for_refresh(tool, meta, event=os.environ["UPDATE_EVENT"],
+                                    schedule=os.environ.get("UPDATE_SCHEDULE", ""), today=today)
               if not due:
                   print(f"{tool.slug}: cached through {asof}; no fetch due", flush=True)
                   continue

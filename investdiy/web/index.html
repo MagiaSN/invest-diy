@@ -34,7 +34,7 @@
 
 <main class="page">
   <h1 class="page-title" data-i18n="common.home">投研工具箱</h1>
-  <p class="lede" data-i18n="home.lede">本地看板与小工具，每个工具都有固定访问地址。</p>
+  <p class="lede" data-i18n="home.lede">市场看板与投资小工具，每个工具都有固定访问地址。</p>
   <section class="tools" id="tools"></section>
   <section class="card" aria-labelledby="external-links-title">
     <h2 id="external-links-title" data-i18n="home.externalLinks">常用外部链接</h2>
@@ -56,11 +56,11 @@
 i18n.add({
   zh: {
     'home.server': '本地服务 · investdiy/server.py',
-    'home.snapshot': '静态快照 · 由本地更新后发布',
-    'home.lede': '本地看板与小工具，每个工具都有固定访问地址。',
+    'home.snapshot': '静态快照 · 定时更新发布',
+    'home.lede': '市场看板与投资小工具，每个工具都有固定访问地址。',
     'home.empty': '还没有工具。',
     'home.nodata': '尚无数据',
-    'home.error': '工具清单加载失败，确认服务器在运行。',
+    'home.error': '工具清单加载失败，请稍后重试。',
     'home.local': '本地工具',
     'home.public': '公开工具',
     'home.externalLinks': '常用外部链接',
@@ -75,11 +75,11 @@ i18n.add({
   },
   en: {
     'home.server': 'Local server · investdiy/server.py',
-    'home.snapshot': 'Static snapshot · published from local updates',
-    'home.lede': 'Local dashboards and small tools, each with a fixed address.',
+    'home.snapshot': 'Static snapshot · updated and published on a schedule',
+    'home.lede': 'Market dashboards and investment tools, each with a fixed address.',
     'home.empty': 'No tools yet.',
     'home.nodata': 'No data yet',
-    'home.error': 'Could not load the tool list. Check that the server is running.',
+    'home.error': 'Could not load the tool list. Please try again later.',
     'home.local': 'Local only',
     'home.public': 'Public',
     'home.externalLinks': 'Useful external links',
@@ -118,7 +118,8 @@ function render() {
 
 i18n.onChange(render);
 fetch('/api/tools.json').then((r) => r.json()).then((list) => {
-  tools = list.sort((a, b) => Number(b.slug === 'pe-calculator') - Number(a.slug === 'pe-calculator'));
+  const priority = {'pe-calculator': 0, 'company-profit': 1};
+  tools = list.sort((a, b) => (priority[a.slug] ?? 2) - (priority[b.slug] ?? 2));
   render();
 })
   .catch(() => { box.textContent = i18n.t('home.error'); });

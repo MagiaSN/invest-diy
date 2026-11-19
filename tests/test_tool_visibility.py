@@ -89,6 +89,16 @@ class VisibilityTests(unittest.TestCase):
 
 
 class ProjectVisibilityTests(unittest.TestCase):
+    def test_company_profit_is_public_and_exports_its_page_and_snapshot(self):
+        tools = registry.discover(public_only=True)
+        self.assertEqual(tools['company-profit'][0].visibility, 'public')
+        with tempfile.TemporaryDirectory() as directory, patch.object(export, 'discover', return_value={
+                'company-profit': tools['company-profit']}):
+            dist = Path(directory)/'site'
+            self.assertEqual(export.build(dist), ['company-profit'])
+            self.assertTrue((dist/'company-profit/index.html').exists())
+            self.assertTrue((dist/'company-profit/data/history.json').exists())
+
     def test_global_gold_is_local_and_excluded_from_public_discovery(self):
         self.assertEqual(registry.discover()['global-track-gold'][0].visibility, 'local')
         self.assertNotIn('global-track-gold', registry.discover(public_only=True))

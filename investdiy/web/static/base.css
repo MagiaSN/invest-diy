@@ -62,6 +62,9 @@ a:hover { text-decoration: underline; }
 .lede { margin: 0; color: var(--fg-muted); max-width: 76ch; line-height: 1.7; }
 .lede b { color: var(--fg); font-weight: 600; }
 
+.site-disclaimer-notice { border: 1px solid var(--warn); border-left-width: 4px; border-radius: var(--radius); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); color: var(--fg); padding: 16px 20px; font-size: 14px; line-height: 1.8; }
+.site-disclaimer-notice strong { display: block; margin-bottom: 4px; font-size: 16px; }
+
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; position: relative; }
 .card h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .note { margin: 0; font-size: 12px; color: var(--fg-muted); line-height: 1.6; }
