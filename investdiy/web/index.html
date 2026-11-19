@@ -16,6 +16,10 @@
   .tool-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: 12px; color: var(--fg-muted); border-top: 1px solid var(--line); padding-top: 8px; }
   .tool-meta > span { white-space: nowrap; }
   .tool-meta > .tool-url { color: var(--accent); white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+  .external-links { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; }
+  .external-links li { min-width: 0; }
+  .external-links a { display: flex; align-items: center; height: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; }
+  .external-links a:hover { border-color: var(--accent); background: var(--grid); text-decoration: none; }
   @media (max-width: 600px) {
     .topbar-right { white-space: normal; min-width: 0; text-align: right; }
     .lang-toggle { flex: none; }
@@ -32,6 +36,18 @@
   <h1 class="page-title" data-i18n="common.home">投研工具箱</h1>
   <p class="lede" data-i18n="home.lede">本地看板与小工具，每个工具都有固定访问地址。</p>
   <section class="tools" id="tools"></section>
+  <section class="card" aria-labelledby="external-links-title">
+    <h2 id="external-links-title" data-i18n="home.externalLinks">常用外部链接</h2>
+    <ul class="external-links">
+      <li><a href="https://www.bls.gov/charts/employment-situation/civilian-unemployment-rate.htm" target="_blank" rel="noopener noreferrer" data-i18n="home.unemployment" data-i18n-title="home.opensNewTab">美国失业率数据（BLS）</a></li>
+      <li><a href="https://fred.stlouisfed.org/series/PAYEMS" target="_blank" rel="noopener noreferrer" data-i18n="home.nonfarmPayrolls" data-i18n-title="home.opensNewTab">美国非农就业数据</a></li>
+      <li><a href="https://fred.stlouisfed.org/series/PCEPILFE" target="_blank" rel="noopener noreferrer" data-i18n="home.pce" data-i18n-title="home.opensNewTab">美国 PCE 数据</a></li>
+      <li><a href="https://www.bls.gov/charts/consumer-price-index/consumer-price-index-by-category-line-chart.htm" target="_blank" rel="noopener noreferrer" data-i18n="home.cpi" data-i18n-title="home.opensNewTab">美国 CPI 数据</a></li>
+      <li><a href="https://fred.stlouisfed.org/series/FEDFUNDS" target="_blank" rel="noopener noreferrer" data-i18n="home.federalFundsRate" data-i18n-title="home.opensNewTab">美国联邦基金利率</a></li>
+      <li><a href="https://semianalysis.com/gpu-pricing-index/" target="_blank" rel="noopener noreferrer" data-i18n="home.gpuPricing" data-i18n-title="home.opensNewTab">SemiAnalysis GPU 价格指数</a></li>
+      <li><a href="https://nwfella.github.io/memory-price-index/" target="_blank" rel="noopener noreferrer" data-i18n="home.memoryPricing" data-i18n-title="home.opensNewTab">MEMWATCH 存储价格指数</a></li>
+    </ul>
+  </section>
 </main>
 
 <script src="/static/i18n.js"></script>
@@ -47,6 +63,15 @@ i18n.add({
     'home.error': '工具清单加载失败，确认服务器在运行。',
     'home.local': '本地工具',
     'home.public': '公开工具',
+    'home.externalLinks': '常用外部链接',
+    'home.unemployment': '美国失业率数据（BLS）',
+    'home.nonfarmPayrolls': '美国非农就业数据',
+    'home.pce': '美国 PCE 数据',
+    'home.cpi': '美国 CPI 数据',
+    'home.federalFundsRate': '美国联邦基金利率',
+    'home.gpuPricing': 'SemiAnalysis GPU 价格指数',
+    'home.memoryPricing': 'MEMWATCH 存储价格指数',
+    'home.opensNewTab': '在新标签页中打开',
   },
   en: {
     'home.server': 'Local server · investdiy/server.py',
@@ -57,6 +82,15 @@ i18n.add({
     'home.error': 'Could not load the tool list. Check that the server is running.',
     'home.local': 'Local only',
     'home.public': 'Public',
+    'home.externalLinks': 'Useful external links',
+    'home.unemployment': 'U.S. unemployment rate data (BLS)',
+    'home.nonfarmPayrolls': 'U.S. nonfarm payroll data',
+    'home.pce': 'U.S. PCE data',
+    'home.cpi': 'U.S. CPI data',
+    'home.federalFundsRate': 'U.S. federal funds rate',
+    'home.gpuPricing': 'SemiAnalysis GPU Pricing Index',
+    'home.memoryPricing': 'MEMWATCH Memory Price Index',
+    'home.opensNewTab': 'Open in a new tab',
   },
 });
 
