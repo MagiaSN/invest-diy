@@ -118,8 +118,8 @@ function render() {
 
 i18n.onChange(render);
 fetch('/api/tools.json').then((r) => r.json()).then((list) => {
-  const priority = {'pe-calculator': 0, 'company-profit': 1};
-  tools = list.sort((a, b) => (priority[a.slug] ?? 2) - (priority[b.slug] ?? 2));
+  const priority = {'pe-calculator': 0, 'company-profit': 1, 'us-track-macro': 2};
+  tools = list.sort((a, b) => (priority[a.slug] ?? 3) - (priority[b.slug] ?? 3));
   render();
 })
   .catch(() => { box.textContent = i18n.t('home.error'); });

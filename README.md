@@ -19,6 +19,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 | [Global Shipping Index Tracker](docs/tools/global-track-container-freight.md) | Local only ([why](docs/tools/global-track-container-freight.md#why-this-tool-is-not-published)) | Tracks all 24 SSE shipping index sections and their components, including container, bulk, tanker, schedule reliability, trade and crew data, with latest periods, units and source update status. |
 | [Global Gold Tracker](docs/tools/global-track-gold.md) | Local only | Compares estimated global gold value with US federal debt, tracks monthly gold/oil and gold/silver ratios, charts annual gold demand by sector, and compares holdings and reserve ratios for 18 major economies. |
 | [Global Copper Market Tracker](docs/tools/global-track-copper.md) | Local only | Compares COMEX, LME and SHFE copper prices, stocks and premiums; charts annual global supply and demand; maps copper mines with dated status, ownership and reported output. |
+| [US Macroeconomic Tracker](docs/tools/us-track-macro.md) | Public | Tracks monthly CPI, final-demand PPI, PCE prices, unemployment, nonfarm payrolls and job gains, and the effective federal funds rate, with independent chart ranges and CSV downloads. |
 
 ## Features
 

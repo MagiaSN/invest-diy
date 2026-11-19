@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="page.title">美国宏观经济数据跟踪</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="topbar-home" href="/" data-i18n="common.home"></a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title" data-i18n="page.title"></span>
+    <span class="topbar-right" data-i18n="page.frequency"></span>
+  </div>
+  <nav class="secnav" data-i18n-aria-label="nav.label"><div class="secnav-in" id="secnav"></div></nav>
+</header>
+<main class="page">
+  <div class="intro">
+    <h1 class="page-title" data-i18n="page.title"></h1>
+    <p class="lede" data-i18n="page.lede"></p>
+    <p class="note" id="asof" aria-live="polite" data-i18n="state.loading"></p>
+    <p class="stale" id="stale" hidden></p>
+    <div class="stale" id="load-error" role="alert" hidden>
+      <p data-i18n="state.error"></p>
+      <code>.venv/bin/python3 -m investdiy.us_track_macro</code>
+    </div>
+  </div>
+  <section class="kpis" id="summary" data-i18n-aria-label="summary.label"></section>
+  <div class="macro-grid" id="charts"></div>
+  <section class="card" id="history" data-nav="nav.history">
+    <div class="card-head">
+      <h2 data-i18n="history.title"></h2>
+      <div class="card-tools">
+        <label for="year" data-i18n="history.year"></label>
+        <select id="year" disabled></select>
+        <span class="dl" data-files="monthly"></span>
+      </div>
+    </div>
+    <p class="note" data-i18n="history.note"></p>
+    <div class="tablebox" tabindex="0" role="region" data-i18n-aria-label="history.title">
+      <table class="table" id="history-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+  <section class="card" id="about" data-nav="nav.about">
+    <div class="card-head"><h2 data-i18n="about.title"></h2></div>
+    <ul class="method">
+      <li data-i18n="about.inflation"></li>
+      <li data-i18n="about.jobs"></li>
+      <li data-i18n="about.rate"></li>
+      <li data-i18n="about.dates"></li>
+    </ul>
+    <div class="tablebox" tabindex="0" role="region" data-i18n-aria-label="sources.title">
+      <table class="table" id="sources-table"><thead><tr>
+        <th data-i18n="sources.indicator"></th><th data-i18n="sources.series"></th>
+        <th data-i18n="sources.agency"></th><th data-i18n="sources.period"></th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+</main>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -19,6 +19,7 @@
 | [全球航运指数数据跟踪](../tools/global-track-container-freight.md) | 本地工具（[原因与风险](../tools/global-track-container-freight.md#why-this-tool-is-not-published)） | 跟踪 SSE 全部 24 个航运指数栏目及分项，覆盖集装箱、散货、油轮、准班率、航贸与海员薪酬，展示最新发布期、单位及各数据源的更新状态。 |
 | [全球黄金数据跟踪](../tools/global-track-gold.md) | 仅本地 | 对比全球黄金估算市值与美债规模，跟踪月度金油比、金银比，展示年度黄金需求分类柱状图，以及18个主要经济体的黄金持有量、增减和储备占比。 |
 | [全球铜市场数据跟踪](../tools/global-track-copper.md) | 本地工具 | 比较 COMEX、LME、上期所铜价、库存与溢价，查看全球年度供需及铜矿地图，展示矿山状态与确认日期、所属公司和披露产量。 |
+| [美国宏观经济数据跟踪](../tools/us-track-macro.md) | 公开工具 | 按月跟踪 CPI、最终需求 PPI、PCE 价格、失业率、非农就业总人数与新增就业，以及联邦基金有效利率；支持独立图表范围与 CSV 下载。 |
 
 ## 特点
 

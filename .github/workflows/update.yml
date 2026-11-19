@@ -24,6 +24,8 @@ on:
     # Company profit metal prices and FX: 09:17 and 16:17 Beijing, Mon-Fri.
     - cron: "17 1 * * 1-5"
     - cron: "17 8 * * 1-5"
+    # US macro: 09:43 Beijing on the 2nd of each month, after the preceding month's releases.
+    - cron: "43 1 2 * *"
   workflow_dispatch:
     inputs:
       refresh_scope:
@@ -32,6 +34,7 @@ on:
         options:
           - all
           - company-profit
+          - us-track-macro
         default: all
       publish:
         description: "Publish to surge.sh"

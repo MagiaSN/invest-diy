@@ -89,6 +89,18 @@ class VisibilityTests(unittest.TestCase):
 
 
 class ProjectVisibilityTests(unittest.TestCase):
+    def test_us_macro_is_public_and_exports_its_page(self):
+        tools = registry.discover(public_only=True)
+        self.assertEqual(tools['us-track-macro'][0].visibility, 'public')
+        with tempfile.TemporaryDirectory() as directory, patch.object(export, 'discover', return_value={
+                'us-track-macro': tools['us-track-macro']}):
+            dist = Path(directory)/'site'
+            self.assertEqual(export.build(dist), ['us-track-macro'])
+            self.assertTrue((dist/'us-track-macro/index.html').exists())
+            self.assertTrue((dist/'us-track-macro/app.js').exists())
+            payload = json.loads((dist/'api/tools.json').read_text())
+            self.assertEqual(payload[0]['visibility'], 'public')
+
     def test_company_profit_is_public_and_exports_its_page_and_snapshot(self):
         tools = registry.discover(public_only=True)
         self.assertEqual(tools['company-profit'][0].visibility, 'public')
