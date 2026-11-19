@@ -168,7 +168,7 @@ Only tools explicitly marked `visibility: public` enter the public export and pu
 - **ETF**: 23:47 Monday-Friday for preliminary units of day T, and 09:37 Tuesday-Saturday for final units published on T+1 (Beijing time).
 - **Gold**: 23:53 on the 7th of each month, retries on the 8th-10th only while the previous month's figures are missing, and an unconditional revision check on the 15th. These runs include weekends; ETF fetching is skipped on the gold schedule.
 - **Company profit**: 09:17 and 16:17 Monday–Friday (Beijing time) refresh all four metal quotes and FX, then publish. These slots do not refetch ETF or PBoC gold with complete cached outputs; company-profit uses its cache on their slots. Its historical baseline bootstraps from a checksum-pinned public release asset, so CI needs no private research checkout.
-- **Manual and bootstrap**: "Run workflow" forces all public tools to update, optionally without publication. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
+- **Manual and bootstrap**: "Run workflow" defaults to refreshing all public data tools; choose `refresh_scope: company-profit` to refresh only that tool while reusing other tools’ valid cached outputs. Publication can be disabled independently. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
 
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).

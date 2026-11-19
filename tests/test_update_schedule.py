@@ -19,9 +19,16 @@ class ScheduleTests(unittest.TestCase):
             for name in names:
                 (self.data / name).touch()
 
-    def due(self, slug, schedule, *, asof="2026-10-31", day=19, event="schedule", update="python -m tool"):
+    def due(self, slug, schedule, *, asof="2026-10-31", day=19, event="schedule", update="python -m tool", refresh_scope="all"):
         tool = SimpleNamespace(slug=slug, data=self.data, update=update, asof=lambda _: asof)
-        return due_for_refresh(tool, {}, event=event, schedule=schedule, today=date(2026, 11, day))
+        return due_for_refresh(tool, {}, event=event, schedule=schedule, today=date(2026, 11, day), refresh_scope=refresh_scope)
+
+    def test_scoped_manual_refresh_reuses_other_outputs_but_still_bootstraps_missing_data(self):
+        options = dict(event="workflow_dispatch", refresh_scope="company-profit")
+        self.assertTrue(self.due("company-profit", "", **options))
+        for slug in ("cn-track-pboc-gold", "ashare-track-national-team-etf"):
+            self.assertFalse(self.due(slug, "", **options))
+            self.assertTrue(self.due(slug, "", asof="", **options))
 
     def test_schedules_refresh_only_their_own_tool_with_a_complete_cache(self):
         schedules = ETF_SCHEDULES | PROFIT_SCHEDULES | {GOLD_SCHEDULE}

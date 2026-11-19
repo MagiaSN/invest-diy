@@ -26,6 +26,13 @@ on:
     - cron: "17 8 * * 1-5"
   workflow_dispatch:
     inputs:
+      refresh_scope:
+        description: "Data to refresh (other tools keep valid cached outputs)"
+        type: choice
+        options:
+          - all
+          - company-profit
+        default: all
       publish:
         description: "Publish to surge.sh"
         type: boolean
@@ -101,6 +108,7 @@ jobs:
         env:
           UPDATE_EVENT: ${{ github.event_name }}
           UPDATE_SCHEDULE: ${{ github.event.schedule }}
+          REFRESH_SCOPE: ${{ inputs.refresh_scope || 'all' }}
         run: |
           python - <<'EOF'
           import os, shlex, subprocess, sys
@@ -116,7 +124,8 @@ jobs:
                   continue
               asof = tool.asof(meta)
               due = due_for_refresh(tool, meta, event=os.environ["UPDATE_EVENT"],
-                                    schedule=os.environ.get("UPDATE_SCHEDULE", ""), today=today)
+                                    schedule=os.environ.get("UPDATE_SCHEDULE", ""), today=today,
+                                    refresh_scope=os.environ["REFRESH_SCOPE"])
               if not due:
                   print(f"{tool.slug}: cached through {asof}; no fetch due", flush=True)
                   continue

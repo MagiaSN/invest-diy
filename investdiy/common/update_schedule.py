@@ -10,14 +10,18 @@ REQUIRED_OUTPUTS = {
 }
 
 
-def due_for_refresh(tool, meta: dict, *, event: str, schedule: str, today: date) -> bool:
-    """Manual runs and missing outputs override each tool's normal schedule."""
+def due_for_refresh(tool, meta: dict, *, event: str, schedule: str, today: date,
+                    refresh_scope: str = "all") -> bool:
+    """Selected manual refreshes and missing outputs override normal schedules."""
     if not tool.update:
         return False
     asof = tool.asof(meta)
-    if event == "workflow_dispatch" or not asof or not all(
+    manual = event == "workflow_dispatch"
+    if (manual and refresh_scope in ("all", tool.slug)) or not asof or not all(
             (tool.data / name).exists() for name in REQUIRED_OUTPUTS.get(tool.slug, ())):
         return True
+    if manual:
+        return False
     if tool.slug == "company-profit":
         return schedule in PROFIT_SCHEDULES
     if tool.slug == "cn-track-pboc-gold":
