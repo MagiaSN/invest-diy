@@ -30,6 +30,10 @@
   const numericFields = [...new Set([...sources.map((s) => s[1]), ...columns.slice(1),
     'unemployment_change_pp', 'fed_funds_change_pp'])];
   let rows = [], failed = false;
+  const activeFields = (c) => c.variant && c.variant !== 'all' ? c.variants[c.variant].fields : c.fields;
+  const variantLabel = (c) => t(`variant.${c.variant}`);
+  const chartLabel = (c) => [t(c.id), c.variant && variantLabel(c), t(`mode.${c.mode}`)].filter(Boolean).join(' · ');
+  const beaWorkbook = 'https://apps.bea.gov/national/Release/XLS/Underlying/Section2All_xls.xlsx';
   const latest = (field) => rows.findLast((r) => Number.isFinite(r[field]));
   const number = (v, digits = 2, signed = false) => Number.isFinite(v)
     ? d3.format(`${signed ? '+' : ''},.${digits}f`)(v) : '—';
@@ -56,21 +60,40 @@
 
     const card = node('section', 'card'); card.id = c.id; card.dataset.nav = c.id;
     const head = node('div', 'card-head'); head.append(translated('h2', c.id));
+    const controls = node('div', 'chart-controls');
+    if (c.fields.yoy) {
+      c.variant = 'all';
+      c.variants = {};
+      const label = node('label', 'mode-label');
+      c.selector = node('select'); c.selector.id = `${c.id}-variant`;
+      const all = translated('option', 'variant.all'); all.value = 'all';
+      c.selector.append(all); c.selector.disabled = true;
+      label.append(translated('span', 'variant.label'), c.selector); controls.append(label);
+      c.selector.addEventListener('change', () => {
+        c.variant = c.selector.value;
+        const fields = activeFields(c);
+        for (const option of c.measure.options) option.disabled = !fields[option.value];
+        if (!fields[c.mode]) { c.mode = 'yoy'; c.measure.value = c.mode; }
+        drawChart(c); drawTable(); drawSources();
+      });
+    }
     if (Object.keys(c.fields).length > 1) {
       const label = node('label', 'mode-label');
       label.append(translated('span', 'mode.label'));
-      const select = node('select'); select.id = `${c.id}-mode`;
+      const select = node('select'); c.measure = select; select.id = `${c.id}-mode`;
       Object.keys(c.fields).forEach((mode) => {
         const option = translated('option', `mode.${mode}`); option.value = mode; select.append(option);
       });
       select.addEventListener('change', () => { c.mode = select.value; drawChart(c); });
-      label.append(select); head.append(label);
+      label.append(select); controls.append(label);
     }
+    head.append(controls);
     c.rangeHost = node('div'); c.rangeHost.id = `${c.id}-range`;
     const meta = node('div', 'chart-meta'); c.unit = node('span'); c.coverage = node('span');
     meta.append(c.unit, c.coverage);
     c.box = node('div', 'chart loading'); c.box.id = `${c.id}-chart`;
-    card.append(head, translated('p', `${c.id}.note`, 'note'), c.rangeHost, meta, c.box);
+    c.note = node('p', 'note');
+    card.append(head, c.note, c.rangeHost, meta, c.box);
     c.card = card; $('charts').append(card);
   });
   kit.sectionNav($('secnav'));
@@ -98,8 +121,12 @@
   }
 
   function drawChart(c) {
+    const selected = c.variants?.[c.variant];
+    const notes = [selected ? t(selected.nsa ? 'note.paired' : 'note.adjusted') : t(`${c.id}.note`)];
+    if (selected && i18n.has(`note.${c.variant}`)) notes.push(t(`note.${c.variant}`));
+    c.note.textContent = notes.join(' ');
     if (!c.range) return;
-    const field = c.fields[c.mode], [start, end] = c.range.get();
+    const field = activeFields(c)[c.mode], [start, end] = c.range.get();
     const visible = rows.filter((r) => r.d >= start && r.d <= end);
     const valid = visible.filter((r) => Number.isFinite(r[field]));
     const tip = kit.tip(c.card); tip.hide();
@@ -115,8 +142,8 @@
     const pad = (hi - lo || Math.abs(hi) || 1) * 0.08;
     const y = d3.scaleLinear([lo - pad, hi + pad], [H - m.b, m.t]).nice();
     const svg = d3.select(c.box).append('svg').attr('viewBox', `0 0 ${W} ${H}`)
-      .attr('role', 'img').attr('aria-label', `${t(c.id)} · ${t(`mode.${c.mode}`)}`);
-    svg.append('title').text(`${t(c.id)} · ${t(`mode.${c.mode}`)}`);
+      .attr('role', 'img').attr('aria-label', chartLabel(c));
+    svg.append('title').text(chartLabel(c));
     const years = (end - start) / 31557600000;
     const ticks = Math.max(2, Math.floor(W / 105));
     const ax = svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x)
@@ -147,19 +174,25 @@
       .attr('fill', 'transparent').on('pointermove', (event) => {
         const row = visible[nearest(visible, x.invert(d3.pointer(event)[0]))];
         rule.attr('x1', x(row.d)).attr('x2', x(row.d)).attr('opacity', 1);
-        tip.show(event, [{ text: row.month }, { text: `${t(`mode.${c.mode}`)}: ${format(row[field], c.mode)}`, color: `var(${c.color})` }]);
+        tip.show(event, [{ text: row.month }, { text: `${chartLabel(c)} · ${format(row[field], c.mode)}`, color: `var(${c.color})` }]);
       }).on('pointerleave', () => { tip.hide(); rule.attr('opacity', 0); });
   }
 
   function drawTable() {
     const tr = node('tr');
-    columns.forEach((field) => tr.append(node('th', '', t(`column.${field}`))));
+    const tableFields = columns.map((field) => {
+      const [family, mode] = field.split('_');
+      const chart = configs.find((c) => c.id === family && c.variant && c.variant !== 'all');
+      const label = t(`column.${field}`);
+      tr.append(node('th', '', chart ? `${label} · ${variantLabel(chart)}` : label));
+      return chart ? activeFields(chart)[mode] : field;
+    });
     $('history-table').querySelector('thead').replaceChildren(tr);
     const year = $('year').value;
     const fragment = document.createDocumentFragment();
     rows.slice().reverse().filter((r) => year === 'all' || r.month.startsWith(year)).forEach((r) => {
       const row = node('tr');
-      columns.forEach((field) => {
+      tableFields.forEach((field) => {
         const v = r[field];
         const value = field === 'month' ? r.month : field === 'payrolls_k'
           ? number(scaleValue(v, 'level'), i18n.lang === 'zh' ? 1 : 3)
@@ -174,10 +207,22 @@
 
   function drawSources() {
     const body = $('sources-table').querySelector('tbody'); body.replaceChildren();
-    sources.forEach(([sid, field, agency]) => {
+    const entries = sources.map(([sid, field, agency]) => ({ sid, field, agency, label: t(`source.${sid}`) }));
+    for (const c of configs) {
+      const spec = c.variants?.[c.variant];
+      if (!spec) continue;
+      for (const mode of ['index', 'nsa', 'yoy', 'annualized_mom']) {
+        if (!spec[mode]) continue;
+        entries.push({ sid: spec[mode], field: `${c.id}_${c.variant}_${mode}`, provider: spec.provider,
+          agency: spec.agency || (c.id === 'pce' ? 'BEA' : 'BLS'),
+          label: `${c.id.toUpperCase()} · ${variantLabel(c)} · ${t(`sourceMode.${mode}`)}` });
+      }
+    }
+    entries.forEach(({ sid, field, agency, label, provider }) => {
       const tr = node('tr'), td = node('td'), a = node('a', '', sid);
-      a.href = `https://fred.stlouisfed.org/series/${sid}`; a.target = '_blank'; a.rel = 'noopener noreferrer'; td.append(a);
-      tr.append(node('td', '', t(`source.${sid}`)), td, node('td', '', agency), node('td', '', latest(field)?.month || '—'));
+      a.href = provider === 'bea' ? beaWorkbook : provider === 'bls' ? `https://data.bls.gov/timeseries/${sid}` : `https://fred.stlouisfed.org/series/${sid}`;
+      a.target = '_blank'; a.rel = 'noopener noreferrer'; td.append(a);
+      tr.append(node('td', '', label), td, node('td', '', agency), node('td', '', latest(field)?.month || '—'));
       body.append(tr);
     });
   }
@@ -193,13 +238,25 @@
   }
   $('year').addEventListener('change', drawTable);
   kit.onRedraw(render);
-  kit.csv('data/monthly.csv').then((data) => {
+  Promise.all([kit.csv('data/monthly.csv'), d3.json('variants.json')]).then(([data, catalog]) => {
     if (!data.length || !['month', 'fetched_at', ...numericFields].every((key) => data.columns.includes(key))) throw new Error('Invalid monthly CSV');
+    const fields = data.columns.filter((name) => !['month', 'as_of', 'fetched_at'].includes(name));
+    for (const c of configs.filter((chart) => chart.selector)) {
+      for (const [key, spec] of Object.entries(catalog[c.id])) {
+        const prefix = `${c.id}_${key}_`;
+        const modes = spec.index ? ['yoy', 'mom', 'index'] : ['yoy', 'mom'];
+        if (!modes.every((mode) => fields.includes(prefix + mode))) continue;
+        c.variants[key] = { ...spec, fields: Object.fromEntries(modes.map((mode) => [mode, prefix + mode])) };
+        const option = translated('option', `variant.${key}`); option.value = key; c.selector.append(option);
+      }
+      c.selector.disabled = !Object.keys(c.variants).length;
+    }
     rows = data.map((r) => ({ ...r, d: new Date(`${r.month}-01T00:00:00Z`),
-      ...Object.fromEntries(numericFields.map((field) => [field, kit.num(r[field])])) })).sort((a, b) => a.d - b.d);
+      ...Object.fromEntries(fields.map((field) => [field, kit.num(r[field])])) })).sort((a, b) => a.d - b.d);
     if (rows.some((r) => !Number.isFinite(r.d.getTime()))) throw new Error('Invalid observation month');
     configs.forEach((c) => {
-      const valid = rows.filter((r) => Object.values(c.fields).some((field) => Number.isFinite(r[field])));
+      const chartFields = [...Object.values(c.fields), ...Object.values(c.variants || {}).flatMap((v) => Object.values(v.fields))];
+      const valid = rows.filter((r) => chartFields.some((field) => Number.isFinite(r[field])));
       if (!valid.length) { kit.ready(c.box); c.box.append(node('p', 'error', t('state.unavailable'))); return; }
       c.range = kit.rangePicker(c.rangeHost, { min: valid[0].d, max: valid.at(-1).d, initial: '5y', onChange: () => drawChart(c) });
     });

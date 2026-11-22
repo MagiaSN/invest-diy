@@ -7,7 +7,7 @@ from .fetch import run
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Update monthly US macroeconomic data from FRED")
+    parser = argparse.ArgumentParser(description="Update monthly US macroeconomic data from FRED, BLS and BEA")
     parser.add_argument("--skip-fetch", action="store_true", help="rebuild from the saved snapshot without changing its fetch time")
     args = parser.parse_args()
     try:

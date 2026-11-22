@@ -1,3 +1,4 @@
 requests>=2.31        # investdiy/common/net.py
 pdfplumber>=0.11      # investdiy/common/fund_reports.py：定期报告表格解析
 pypdfium2>=4.0        # investdiy/common/fund_reports.py：PDF 文本提取
+openpyxl>=3.1         # investdiy/us_track_macro: BEA underlying-detail workbook

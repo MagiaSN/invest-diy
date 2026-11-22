@@ -1,0 +1,30 @@
+{
+  "cpi": {
+    "ex_energy": {"index": "CPILEGSL", "nsa": "CPILEGNS"},
+    "ex_food": {"index": "CPIULFSL", "nsa": "CPIULFNS"},
+    "core": {"index": "CPILFESL", "nsa": "CPILFENS"},
+    "ex_housing": {"index": "CUSR0000SA0L2", "nsa": "CUUR0000SA0L2"},
+    "core_ex_housing": {"index": "CUSR0000SA0L12E", "nsa": "CUUR0000SA0L12E", "provider": "bls"},
+    "core_ex_housing_cars": {"index": "CUSR0000SA0L12E4", "nsa": "CUUR0000SA0L12E4", "provider": "bls"},
+    "median": {"index": "MEDCPIM094SFRBCLE", "agency": "Cleveland Fed"},
+    "trimmed_16": {"index": "TRMMEANCPIM094SFRBCLE", "agency": "Cleveland Fed"}
+  },
+  "ppi": {
+    "ex_energy": {"index": "WPSFD49107", "nsa": "WPUFD49107"},
+    "ex_food": {"index": "WPSFD49106", "nsa": "WPUFD49106"},
+    "core": {"index": "PPIFES", "nsa": "PPICOR"},
+    "ex_trade": {"index": "WPSFD49108", "nsa": "WPUFD49108"},
+    "core_ex_trade": {"index": "WPSFD49116", "nsa": "WPUFD49116"}
+  },
+  "pce": {
+    "ex_energy": {"index": "DPXERG", "provider": "bea"},
+    "ex_food": {"index": "DPXFRG", "provider": "bea"},
+    "core": {"index": "PCEPILFE"},
+    "core_ex_housing": {"index": "IA001176M"},
+    "ex_energy_goods": {"index": "PCEEXENERGYGOODS", "agency": "St. Louis Fed"},
+    "services_ex_energy_housing": {"index": "IA001260M"},
+    "market": {"index": "DPCMRG3M086SBEA"},
+    "market_core": {"index": "DPCXRG3M086SBEA"},
+    "trimmed": {"yoy": "PCETRIM12M159SFRBDAL", "annualized_mom": "PCETRIM1M158SFRBDAL", "agency": "Dallas Fed"}
+  }
+}

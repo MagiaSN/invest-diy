@@ -2,10 +2,13 @@
 
 from datetime import date
 import json
+from io import BytesIO
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from openpyxl import Workbook
 
 from investdiy.us_track_macro import fetch, model
 
@@ -73,8 +76,45 @@ class ModelTests(unittest.TestCase):
         rows = model.build_monthly(series, "2024-04-01", start="2024-01")
         self.assertIsNone(rows[-1]["cpi_yoy"])
 
+    def test_variants_use_their_own_bases_and_published_rate_units(self):
+        series = fixture()
+        series["WPUFD49107"]["2024-01"] = 130.
+        series["DPXERG"]["2024-01"] = 99.
+        series["DPXFRG"]["2024-01"] = 105.
+        series["PCETRIM12M159SFRBDAL"]["2024-01"] = -1.
+        series["PCETRIM1M158SFRBDAL"]["2024-01"] = 100 * (0.99 ** 12 - 1)
+        row = model.build_monthly(series, "2024-04-01", start="2024-01")[-1]
+        self.assertEqual(set(row), set(model.FIELDS))
+        self.assertEqual(row["ppi_ex_energy_yoy"], 30.)
+        self.assertEqual(row["ppi_ex_energy_mom"], 10.)
+        self.assertEqual(row["pce_ex_energy_yoy"], -1.)
+        self.assertEqual(row["pce_ex_food_yoy"], 5.)
+        self.assertEqual(row["pce_trimmed_yoy"], -1.)
+        self.assertEqual(row["pce_trimmed_mom"], -1.)
+        self.assertNotIn("pce_trimmed_index", row)
+        self.assertEqual(model.parse_series("DATE,PCETRIM12M159SFRBDAL\n2024-01-01,-1.0\n",
+                                           "PCETRIM12M159SFRBDAL"), {"2024-01": -1.})
+
 
 class FetchTests(unittest.TestCase):
+    def setUp(self):
+        for collector in ("fetch_bea", "fetch_bls"):
+            self.enterContext(patch.object(fetch, collector, side_effect=lambda ids: {sid: fixture()[sid] for sid in ids}))
+
+    def test_legacy_snapshot_rebuild_and_upgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = fixture()
+            legacy = {sid: data[sid] for sid in model.HEADLINE_SERIES}
+            (root / "raw").mkdir()
+            (root / "raw/fred.json").write_text(json.dumps({"fetched_at": "2024-04-01", "series": legacy}))
+            old = fetch.run(root, skip_fetch=True)
+            self.assertEqual(set(old[0]), set(model.LEGACY_FIELDS))
+            with patch.object(fetch, "fetch_series", side_effect=data.__getitem__):
+                new = fetch.run(root)
+            self.assertEqual(set(new[0]), set(model.FIELDS))
+            self.assertIsNone(new[1]["pce_core_index"])
+
     def test_failed_or_regressing_source_preserves_both_files(self):
         for regression in (False, True):
             with self.subTest(regression=regression), tempfile.TemporaryDirectory() as tmp:
@@ -107,6 +147,34 @@ class FetchTests(unittest.TestCase):
             snapshot = json.loads((root / "raw/fred.json").read_text())
             self.assertIn(snapshot["fetched_at"].encode(), original)
             self.assertIn(b",,", original)
+
+
+class ProviderTests(unittest.TestCase):
+    def test_bea_matches_account_codes_and_month_columns(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "U20404-M"
+        sheet.append(["Line", None, None, "2024M01", None, "2024M02", "2999M01"])
+        sheet.append([2, "Food exclusion", "DPXFRG", 90, None, 91, 92])
+        sheet.append([1, "Energy exclusion", "DPXERG", 80, None, None, 81])
+        content = BytesIO()
+        workbook.save(content)
+        with patch.object(fetch.net, "get", return_value=Mock(content=content.getvalue())):
+            series = fetch.fetch_bea(["DPXERG", "DPXFRG"])
+        self.assertEqual(series, {"DPXFRG": {"2024-01": 90, "2024-02": 91}, "DPXERG": {"2024-01": 80}})
+
+    def test_bls_batches_keep_missing_months_and_ignore_annual_average(self):
+        def response(url, *, json):
+            start, end = int(json["startyear"]), int(json["endyear"])
+            self.assertLessEqual(end - start, 9)
+            data = [{"year": str(start), "period": p, "value": v} for p, v in
+                    (("M01", "123.4"), ("M02", "-"), ("M13", "130.2"))]
+            return Mock(json=lambda: {"status": "REQUEST_SUCCEEDED", "Results": {"series": [
+                {"seriesID": sid, "data": data} for sid in json["seriesid"]]}})
+        with patch.object(fetch.net, "post", side_effect=response):
+            result = fetch.fetch_bls(["CUSR0000SA0L12E"])
+        self.assertEqual(result["CUSR0000SA0L12E"]["1989-01"], 123.4)
+        self.assertNotIn("1989-02", result["CUSR0000SA0L12E"])
 
 
 if __name__ == "__main__":

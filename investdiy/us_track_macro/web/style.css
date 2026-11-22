@@ -27,3 +27,6 @@ select { max-width: 100%; font: inherit; font-size: 14px; color: var(--fg); back
   .topbar-right { display: none; }
   .card { padding: 16px 12px; }
 }
+.chart-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; max-width: 100%; }
+.chart-controls .mode-label { max-width: 100%; }
+.chart-controls select { min-width: 0; }
