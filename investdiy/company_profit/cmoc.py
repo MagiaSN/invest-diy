@@ -4,6 +4,13 @@ import json
 
 from .annual_history import CMOC_GROUPS, grouped_cmoc_years
 
+# Consolidated profit before tax and income tax expense, CNY 100m. Both
+# columns of the FY 2019 income statement were public before the FY 2020 anchor.
+TAX_SEED = {
+    2018: (69.8985741563, 18.3981590939),
+    2019: (23.5844846392, 5.9260008607),
+}
+
 # Volumes are tonnes, except gold in troy ounces. Revenue and cost are CNY thousands.
 # Each product tuple contains production, sales, revenue and cost, in that order.
 # Financial tuples contain pretax, tax, parent, NCI and associate income in CNY thousands.
@@ -112,10 +119,21 @@ def baseline():
             "other": pretax - gp - associate, "tax": tax / pretax, "net": net,
             "share": actual / net, "actual": actual, "nci": nci, "url": report["url"],
         })
+    annual_taxes = dict(TAX_SEED)
+    for row in history:
+        if row["months"] == 12:
+            annual_taxes[int(row["year"])] = (row["pretax"], row["pretax"] - row["net"])
+    for row in history:
+        year = int(row["year"][:4])
+        last_year = year if row["months"] == 12 else year - 1
+        years = range(last_year - 2, last_year + 1)
+        row["taxWindow"] = dict(firstYear=years.start, lastYear=last_year,
+                                pretax=sum(annual_taxes[y][0] for y in years),
+                                expense=sum(annual_taxes[y][1] for y in years))
     return {
         "version": 1, "history": history, "verified": "2026-11-23",
         "unit": "Profit CNY 100m; copper/cobalt/phosphate output 10,000 t, other output t; "
                 "gold price/cost CNY/g, others CNY/t; gold sales kg, other sales t",
         "thresholds": {"mape": 15, "maxError": 25},
-        "source_sha256": hashlib.sha256(json.dumps({**CMOC_GROUPS, **REPORTS}, sort_keys=True).encode()).hexdigest(),
+        "source_sha256": hashlib.sha256(json.dumps({"taxSeed": TAX_SEED, **CMOC_GROUPS, **REPORTS}, sort_keys=True).encode()).hexdigest(),
     }

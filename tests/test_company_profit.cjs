@@ -42,7 +42,7 @@ test('annual tests consume reported sales, price and cost and freeze the rest of
       close(m.price, actual.price); close(m.cost, actual.cost);
       close(M.estimate(before.input, company).metals[i].gp, actual.gp);
     });
-    Object.assign(target, {actual:1, net:1, nci:0, pretax:1, tax:.9, share:.1, associate:9000, other:9000, gp:1});
+    Object.assign(target, {actual:1, net:1, nci:0, pretax:1, tax:.9, taxWindow:{pretax:100, expense:55}, share:.1, associate:9000, other:9000, gp:1});
     target.metals.forEach(m => { m.production = 1; m.conversion = .01; m.gp = 1; });
     close(before.predicted, predict().predicted);
     target.metals[0].sales *= .5;
@@ -60,9 +60,8 @@ test('annual validation meets preset gates; original 2022 output is preserved', 
   const rows = M.annualBacktests(D.history, 'zijin');
   const stats = M.metrics(rows);
   assert.ok(stats.mape <= D.thresholds.mape); assert.ok(stats.maxError <= D.thresholds.maxError);
-  close(stats.mape, 9.27, .005); close(stats.maxError, 24.24, .005);
-  close(rows[0].error, -24.24, .005);
-  assert.ok(rows[1].error < 0 && rows[2].error < 0);
+  close(stats.mape, 2.49, .005); close(stats.maxError, 6.09, .005);
+  rows.forEach((r, i) => close(r.error, [-6.09, -1.74, -2.45, 1.72, -.44][i], .005));
   // Positive price sensitivity is economically necessary in the calibrated regime.
   const input = M.defaults(D.history.find(r => r.year === '2025')); const initial = M.estimate(input).parent;
   for (let i = 0; i < 4; i++) { const changed = clone(input); changed.metals[i].price *= 1.1; assert.ok(M.estimate(changed).parent > initial); }
@@ -172,8 +171,8 @@ test('CMOC separates mining revenue exposure from unit margins and allocates onl
   const history = D.cmoc.history;
   const rows = ['2024', '2025'].map(y => M.backtest(history, y, 'cmoc'));
   const stats = M.metrics(rows);
-  close(rows[0].predicted, 142.24, .005); close(rows[1].predicted, 186.89, .005);
-  close(stats.mape, 6.61, .005); close(stats.maxError, 8.11, .005);
+  close(rows[0].predicted, 144.48, .005); close(rows[1].predicted, 194.09, .005);
+  close(stats.mape, 5.67, .005); close(stats.maxError, 6.77, .005);
   close(rows[0].input.share, rows[0].input.marginalShare);
   const input = rows[1].input, a = history.find(r => r.year === '2023'), b = history.find(r => r.year === '2024');
   close(input.marginalShare, 100 * (b.actual - a.actual) / (b.net - a.net));
@@ -207,13 +206,43 @@ test('five-year windows roll on a new annual report and exclude interim reports'
 test('CMOC grouped annual disclosures reconcile across the 2023 reporting transition', () => {
   const history = D.cmoc.history;
   const rows = M.annualBacktests(history, 'cmoc');
-  close(M.metrics(rows).mape, 15.38, .005); close(M.metrics(rows).maxError, 33.64, .005);
+  close(M.metrics(rows).mape, 8.67, .005); close(M.metrics(rows).maxError, 19.72, .005);
+  rows.forEach((r, i) => close(r.error, [19.72, -10.48, 1.80, 6.77, -4.57][i], .005));
   const first = M.estimate(rows[0].input, 'cmoc').metals[0];
   close(first.sales, 205081 + 17085);
   close(first.revenue, 13268256624.20 / 1e8);
   close(first.totalCost, 6241622321.72 / 1e8);
   const base = history.find(r => r.year === '2022');
   const result = M.estimate(rows[2].input, 'cmoc');
-  close(result.associate, (result.metals[0].gp + result.metals[1].gp) * base.associate / base.metals[0].gp);
-  assert.equal(rows[3].input.groupedCopperDriver, undefined);
+  close(result.associate, base.associate);
+});
+
+test('monthly items follow scenario duration independently of metal margins', () => {
+  for (const [company, history, line] of [['zijin', D.history, 'other'], ['cmoc', D.cmoc.history, 'associate']]) {
+    const base = history.find(r => r.year === '20269M');
+    const input = M.defaults(base, false, history);
+    input.metals.find(m => m.id === 'copper').price *= 2;
+    close(M.estimate(input, company)[line], base[line]);
+    input.months = 12;
+    close(M.estimate(input, company)[line], base[line] * 12 / 9);
+  }
+});
+
+test('CMOC forecast tax pools only the last three completed fiscal years at the baseline', () => {
+  const history = D.cmoc.history;
+  const annual = new Map([[2018, [69.8985741563, 18.3981590939]], [2019, [23.5844846392, 5.9260008607]]]);
+  for (const r of history.filter(r => r.months === 12)) annual.set(Number(r.year), [r.pretax, r.tax * r.pretax]);
+  for (const base of history) {
+    const last = Number(base.year.slice(0, 4)) - (base.months < 12 ? 1 : 0);
+    const years = [last - 2, last - 1, last].map(y => annual.get(y));
+    const pretax = years.reduce((sum, v) => sum + v[0], 0);
+    const expense = years.reduce((sum, v) => sum + v[1], 0);
+    assert.equal(base.taxWindow.firstYear, last - 2); assert.equal(base.taxWindow.lastYear, last);
+    close(M.defaults(base, false, history, 'forecast').tax, 100 * expense / pretax);
+    close(M.defaults(base, false, history).tax, base.tax * 100);
+  }
+  const base = history.at(-1);
+  for (const taxWindow of [undefined, {pretax:0, expense:1}, {pretax:100, expense:70}]) {
+    close(M.defaults({...base, taxWindow}, false, history, 'forecast').tax, base.tax * 100);
+  }
 });

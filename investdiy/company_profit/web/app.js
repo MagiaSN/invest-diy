@@ -9,14 +9,16 @@
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const localized = [...$('company-panel').querySelectorAll('[data-i18n]')].map(el => [el, el.dataset.i18n]);
   let company, ids, D, annual, stats, units, priceValues, latest;
-  let base, input, current, valid, productionApplied, marketApplied;
+  let base, reference, input, current, valid, productionApplied, marketApplied;
   const keyFor = k => i18n.has(company + '.' + k) ? company + '.' + k : k;
   const t = (k, vars) => i18n.t(keyFor(k), vars);
   const fmt = (v, digits = 2) => new Intl.NumberFormat(i18n.lang === 'zh' ? 'zh-CN' : 'en', {maximumFractionDigits: digits, minimumFractionDigits: digits}).format(v);
   const period = y => i18n.has('period.' + y) ? t('period.' + y) : y;
-  const fields = [ ['tax', 0, 60], ['share', 0, 100], ['associate', -100, 200], ['other', -200, 200], ['adjustment', -10000, 10000] ];
-  const cmocFields = [...fields, ['marginalShare', 0, 100], ['months', 1, 12]];
-  const activeFields = () => company === 'cmoc' ? cmocFields : fields;
+  const commonFields = [['tax', 0, 60], ['share', 0, 100], ['months', 1, 12], ['adjustment', -10000, 10000]];
+  const fields = {
+    zijin: [...commonFields, ['associate', -100, 200], ['otherMonthly', -10000, 10000]],
+    cmoc: [...commonFields, ['associateMonthly', -10000, 10000], ['other', -200, 200], ['marginalShare', 0, 100]],
+  };
   const priceDigits = id => units[id] === 'USD/lb' ? 6 : 4;
   function priceLimit(id) {
     const scale = 10 ** priceDigits(id);
@@ -80,14 +82,14 @@
       el.append(field(m.id + '-production', `${t('production')} (${qu})`, m.production, 0, 1e6), priceField(m), field(m.id + '-cost', `${t('cost')} (${pu})`, m.cost, 0, 1e7));
       $('metal-inputs').append(el); setPrice(m.id, m.price);
     });
-    activeFields().forEach(([key, min, max]) => $('advanced-inputs').append(field(key, t(key), input[key], min, max)));
+    fields[company].forEach(([key, min, max]) => $('advanced-inputs').append(field(key, t(key), input[key], min, max)));
   }
   function read() {
     let ok = true;
     $('inputs').querySelectorAll('input').forEach(el => { const bad = el.value.trim() === '' || !el.validity.valid || !Number.isFinite(el.valueAsNumber); el.setAttribute('aria-invalid', String(bad)); if (bad) ok = false; });
     if (!ok) throw new Error('invalid');
     const result = {metals: ids.map(id => ({id, production: $(id + '-production').valueAsNumber, price: readPrice(id), cost: $(id + '-cost').valueAsNumber}))};
-    activeFields().forEach(([k]) => { result[k] = $(k).valueAsNumber; });
+    fields[company].forEach(([k]) => { result[k] = $(k).valueAsNumber; });
     if (company === 'cmoc') result.baseMonthlyNet = base.net / base.months;
     return result;
   }
@@ -104,8 +106,10 @@
     $('bull').disabled = !valid || input.metals.some(m => m.price * 1.1 > 1e7);
     $('bear').disabled = !valid;
     if (!valid) { $('band').textContent = ''; $('scenario-warning').textContent = ''; return; }
-    const reference = M.defaults(base, false, D.history);
-    const extreme = input.metals.some((m, i) => m.production < reference.metals[i].production * .7 || m.production > reference.metals[i].production * 1.3 || m.price < reference.metals[i].price * .5 || m.price > reference.metals[i].price * 1.5 || m.cost < reference.metals[i].cost * .8 || m.cost > reference.metals[i].cost * 1.2) || (company === 'cmoc' && Math.abs(input.marginalShare - reference.marginalShare) > 5) || current.gp <= base.gp * .2 || input.adjustment !== 0 || fields.slice(0, 4).some(([k]) => Math.abs(input[k] - reference[k]) > 5);
+    const extreme = input.metals.some((m, i) => m.production < reference.metals[i].production * .7 || m.production > reference.metals[i].production * 1.3 || m.price < reference.metals[i].price * .5 || m.price > reference.metals[i].price * 1.5 || m.cost < reference.metals[i].cost * .8 || m.cost > reference.metals[i].cost * 1.2) || current.gp <= base.gp * .2 || input.adjustment !== 0 || fields[company].some(([k]) => {
+      if (k.endsWith('Monthly')) return Math.abs(input[k] - reference[k]) > Math.max(1, Math.abs(reference[k]) * .2);
+      return k !== 'months' && Math.abs(input[k] - reference[k]) > 5;
+    });
     $('scenario-warning').textContent = t(extreme ? 'scenario.extreme' : 'scenario.normal');
     const span = Math.abs(current.parent) * stats.maxError / 100;
     $('band').textContent = extreme ? '' : t('band', {lo: fmt(current.parent - span), hi: fmt(current.parent + span), error: fmt(stats.maxError, 1)});
@@ -123,7 +127,7 @@
   function applyProduction() {
     productionApplied = $('production-preset').value;
     for (const [id, value] of Object.entries(P.production(productionApplied, company))) $(id + '-production').value = value;
-    if (company === 'cmoc') $('months').value = 12;
+    $('months').value = 12;
     renderPresetNotes(); renderResult();
   }
   function renderSnapshot() {
@@ -194,10 +198,11 @@
     D.history.forEach(r => { const li = document.createElement('li'), a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = company === 'cmoc' ? t('cmoc.report', {period:period(r.year)}) : (i18n.has('source.' + r.year) ? t('source.' + r.year) : period(r.year)); li.append(a); $('sources').append(li); });
     $('version').textContent = t('version', {date:D.verified, hash:D.source_sha256.slice(0, 16)});
   }
-  function reset() {
+  function reset(taxBasis = 'reported') {
     base = D.history.find(r => r.year === $('base').value);
     productionApplied = null; marketApplied = null;
-    input = M.defaults(base, false, D.history); buildInputs(); renderResult(); renderPresetNotes();
+    reference = M.defaults(base, false, D.history, taxBasis);
+    input = reference; buildInputs(); renderResult(); renderPresetNotes();
   }
   function download(name, contents, mime) {
     const blob = new Blob([contents], {type:mime}), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -206,7 +211,7 @@
     if (event.target.matches('input[id$="-price"]')) delete priceValues[event.target.id.slice(0, -6)];
     renderResult();
   });
-  $('reset').addEventListener('click', reset);
+  $('reset').addEventListener('click', () => reset());
   $('production-preset').addEventListener('change', renderPresetNotes);
   $('apply-production').addEventListener('click', applyProduction);
   $('price-preset').addEventListener('change', () => {
@@ -224,7 +229,7 @@
   $('download').addEventListener('click', () => {
     if (!valid) return;
     const scenario = {
-      company, modelVersion: company === 'cmoc' ? 3 : 2, quantityBasis: 'sales', sourceSha256: D.source_sha256,
+      company, modelVersion: company === 'cmoc' ? 4 : 3, quantityBasis: 'sales', sourceSha256: D.source_sha256,
       baseline: base, fullPreset: base.year, lastProductionPreset: productionApplied,
       productionSource: productionApplied ? P.guidance[company].source : null,
       lastMarketApplication: marketApplied, units: D.unit, displayPriceUnits: {...units},
@@ -241,11 +246,11 @@
   });
   function capture() {
     const drafts = Object.fromEntries([...$('inputs').querySelectorAll('input')].map(el => [el.id, el.value]));
-    return {drafts, priceValues: {...priceValues}, input, base, units, marketApplied, productionApplied,
+    return {drafts, priceValues: {...priceValues}, input, base, reference, units, marketApplied, productionApplied,
       selectedBase: $('base').value, selectedPlan: $('production-preset').value};
   }
   function restore(state) {
-    ({input, base, units, marketApplied, productionApplied} = state);
+    ({input, base, reference, units, marketApplied, productionApplied} = state);
     $('base').value = state.selectedBase;
     $('production-preset').value = state.selectedPlan;
     buildInputs();
@@ -290,7 +295,7 @@
     options('production-preset', Object.keys(P.guidance[company].plans), 'plan.');
     $('production-source').href = P.guidance[company].source;
     if (saved[company]) restore(saved[company]);
-    else { reset(); applyProduction(); applyLatest(); }
+    else { reset('forecast'); applyProduction(); applyLatest(); }
     renderHistory(); renderSnapshot(); i18n.apply();
   }
   tabs.forEach(tab => {

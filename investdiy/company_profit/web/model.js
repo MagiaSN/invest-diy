@@ -24,19 +24,21 @@
   function reportedSalesInput(m) {
     return {id: m.id, production: m.sales / products[m.id].salesScale, price: m.price, cost: m.cost};
   }
-  function defaults(base, annualize = true, history = []) {
+  function defaults(base, annualize = true, history = [], taxBasis = 'reported') {
     const scale = annualize ? 12 / base.months : 1;
     const input = {
       metals: base.metals.map(reportedSalesInput),
-      tax: base.tax * 100, share: base.share * 100, other: base.other / base.gp * 100,
-      associate: base.associate / base.metals.find(m => m.id === (base.grouped ? 'copperCobalt' : 'copper')).gp * 100, adjustment: 0,
+      tax: base.tax * 100, share: base.share * 100, adjustment: 0, months: annualize ? 12 : base.months,
     };
     if (annualize) input.metals.forEach(m => { m.production *= scale; });
     if (base.grouped || base.metals.some(m => m.id === 'cobalt')) {
-      if (base.grouped) input.groupedCopperDriver = true;
+      input.associateMonthly = base.associate / base.months;
+      if (taxBasis === 'forecast' && base.taxWindow?.pretax > 0) {
+        const rate = 100 * base.taxWindow.expense / base.taxWindow.pretax;
+        if (rate >= 0 && rate <= 60) input.tax = rate;
+      }
       const revenue = base.metals.reduce((sum, m) => sum + m.sales * m.price * m.factor / 1e8, 0);
       input.other = base.other / revenue * 100;
-      input.months = annualize ? 12 : base.months;
       input.baseMonthlyNet = base.net / base.months;
       input.marginalShare = input.share;
       const lastYear = Number(base.year.slice(0, 4)) - (base.months === 12 ? 0 : 1);
@@ -46,11 +48,14 @@
         const slope = (last.actual - previous.actual) / (last.net - previous.net);
         if (slope >= 0 && slope <= 1) input.marginalShare = slope * 100;
       }
+    } else {
+      input.otherMonthly = base.other / base.months;
+      input.associate = base.associate / base.metals.find(m => m.id === 'copper').gp * 100;
     }
     return input;
   }
   function estimate(input, company = 'zijin') {
-    const grouped = company === 'cmoc' && input?.groupedCopperDriver && input.metals?.[0]?.id === 'copperCobalt';
+    const grouped = company === 'cmoc' && input?.metals?.[0]?.id === 'copperCobalt';
     const expected = grouped ? cmocGroups : companyProducts[company];
     if (!input || !Array.isArray(input.metals) || input.metals.length !== expected.length) throw new Error('invalid');
     const metals = input.metals.map((m, i) => {
@@ -62,15 +67,24 @@
       return {...m, sales, revenue, totalCost: cost, gp: revenue - cost};
     });
     const gp = metals.reduce((s, m) => s + m.gp, 0);
-    const copperGP = grouped ? metals[0].gp : metals.find(m => m.id === 'copper').gp;
-    // At the disclosure transition, apply the prior copper/cobalt ratio to both metals.
-    const associateDriver = company === 'cmoc' && input.groupedCopperDriver && !grouped
-      ? copperGP + metals.find(m => m.id === 'cobalt').gp : copperGP;
-    const associate = associateDriver * number(input.associate, -100, 200) / 100;
-    // Archived CMOC scenarios used gross profit as the residual's driver.
+    // Older exported scenarios encode both lines as percentages.
+    const months = input.months === undefined ? 12 : number(input.months, 1, 12);
+    let associate;
+    if (company === 'cmoc' && input.associateMonthly !== undefined) {
+      associate = months * number(input.associateMonthly, -10000, 10000);
+    } else {
+      let driver = grouped ? metals[0].gp : metals.find(m => m.id === 'copper').gp;
+      if (company === 'cmoc' && input.groupedCopperDriver && !grouped) driver += metals.find(m => m.id === 'cobalt').gp;
+      associate = driver * number(input.associate, -100, 200) / 100;
+    }
     const cmocBridge = company === 'cmoc' && input.baseMonthlyNet !== undefined;
-    const otherDriver = cmocBridge ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
-    const other = otherDriver * number(input.other, -200, 200) / 100;
+    let other;
+    if (company === 'zijin' && input.otherMonthly !== undefined) {
+      other = months * number(input.otherMonthly, -10000, 10000);
+    } else {
+      const driver = cmocBridge ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
+      other = driver * number(input.other, -200, 200) / 100;
+    }
     const pretax = gp + associate + other;
     // No automatic recognition of a tax asset in a loss scenario.
     const tax = Math.max(0, pretax) * number(input.tax, 0, 60) / 100;
@@ -78,7 +92,7 @@
     const share = number(input.share, 0, 100) / 100;
     let coreParent = net * share;
     if (cmocBridge) {
-      const baseNet = number(input.baseMonthlyNet, 0, Infinity) * number(input.months, 1, 12);
+      const baseNet = number(input.baseMonthlyNet, 0, Infinity) * months;
       const marginal = number(input.marginalShare, 0, 100) / 100;
       coreParent += Math.max(net - baseNet, 0) * (marginal - share);
     }
@@ -95,7 +109,7 @@
     const baseId = String(Number(target.year.slice(0, 4)) - 1);
     const base = history.find(r => r.year === baseId);
     if (!base || base.months !== 12) throw new Error('base');
-    const input = defaults(base, false, history);
+    const input = defaults(base, false, history, 'forecast');
     // These three user inputs come from the target annual report.
     input.metals = target.metals.map(reportedSalesInput);
     const predicted = estimate(input, company).parent;

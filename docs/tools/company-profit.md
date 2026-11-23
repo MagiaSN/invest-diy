@@ -29,27 +29,33 @@ Sales volume, cost and advanced fields are initially rounded to four decimal pla
 
 ## CMOC
 
-The 2026 guidance presets use the lower bound, arithmetic midpoint and upper bound for copper (760,000–820,000 t), cobalt (100,000–120,000 t), molybdenum (11,500–14,500 t), tungsten (6,500–7,500 t), niobium (10,000–11,000 t), gold (6–8 t annualized) and phosphate fertilizer (1.05–1.25 million t). The default midpoint uses the costs and financial ratios from 9M 2026. Gold uses 31.1034768 grams per troy ounce. Copper, cobalt and fertilizer output display in 10,000 tonnes, while other output displays in tonnes. [2025 annual report](https://static.cninfo.com.cn/finalpage/2026-04-02/1225072765.PDF)
+The 2026 guidance presets use the lower bound, arithmetic midpoint and upper bound for copper (760,000–820,000 t), cobalt (100,000–120,000 t), molybdenum (11,500–14,500 t), tungsten (6,500–7,500 t), niobium (10,000–11,000 t), gold (6–8 t annualized) and phosphate fertilizer (1.05–1.25 million t). The default midpoint uses costs and monthly associate income from 9M 2026, with forecast tax pooled from FY 2023–2025. Gold uses 31.1034768 grams per troy ounce. Copper, cobalt and fertilizer output display in 10,000 tonnes, while other output displays in tonnes. [2025 annual report](https://static.cninfo.com.cn/finalpage/2026-04-02/1225072765.PDF)
 
 The Sales volume field accepts units sold. Its presets use company production guidance directly. Selling price and unit sales cost are user inputs. The earnings model starts with those inputs and computes product gross profit, pre-tax profit, tax and attributable earnings. Guidance and quotes provide editable scenario defaults. Copper and gold use saved SHFE quotes. Other selling prices initialize from the latest modeled report’s product revenue divided by sales. Historical presets use the selected report’s actuals. The copper/cobalt sensitivity matrix varies the two prices independently.
 
 Each full-year test uses sales volumes from the original target annual report. Dividing product revenue and cost of sales by reported units sold gives the realized unit price and cost. Gross profit therefore reconciles by product. Financial parameters use reports through the preceding full year. Reported attributable profit enters the error calculation.
 
-| FY | Parameter year | Estimated parent profit | Reported parent profit | Signed error |
-| --- | --- | ---: | ---: | ---: |
-| 2021 | 2020 | 68.24 | 51.06 | +33.64% |
-| 2022 | 2021 | 48.70 | 60.67 | −19.72% |
-| 2023 | 2022 | 91.00 | 82.50 | +10.30% |
-| 2024 | 2023 | 142.24 | 135.32 | +5.11% |
-| 2025 | 2024 | 186.89 | 203.39 | −8.11% |
+| FY | Parameter year | Estimated parent profit | Reported parent profit | Previous error | Revised error |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 2021 | 2020 | 61.13 | 51.06 | +33.64% | +19.72% |
+| 2022 | 2021 | 54.31 | 60.67 | −19.72% | −10.48% |
+| 2023 | 2022 | 83.98 | 82.50 | +10.30% | +1.80% |
+| 2024 | 2023 | 144.48 | 135.32 | +5.11% | +6.77% |
+| 2025 | 2024 | 194.09 | 203.39 | −8.11% | −4.57% |
 
-Amounts are in CNY 100m. Five-year MAPE is 15.38% and maximum absolute error is 33.64%. FY 2021 contributes the largest error. The 2024–2025 subset used in model design has 6.61% MAPE.
+Amounts are in CNY 100m. On the same annual sales, prices and costs, five-year MAPE falls from 15.38% to 8.67%. Maximum absolute error falls from 33.64% to 19.72%. FY 2024 deteriorates by 1.65 percentage points using unrounded errors. All five years were examined during model development.
 
-The FY 2020–2022 records preserve copper/cobalt, molybdenum/tungsten and niobium/phosphate group economics. For each pair, combined reported tonnes multiplied by the blended unit price or cost recovers the disclosed group revenue or cost of sales. The 2020 niobium and phosphate financial lines are summed for comparability. Australian NPM stays in the residual, as in subsequent years. In the 2021–2023 tests, the associate-income ratio uses copper/cobalt GP in both the base and target. From the 2023 baseline onward, separate copper GP is available. The grouped reports appear in the validation audit and sources. Interactive single-product presets begin in 2023. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-03-23/1209426961.PDF) · [2021 annual report](https://static.cninfo.com.cn/finalpage/2022-03-19/1212626342.PDF) · [2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-18/1216148712.PDF)
+In FY 2021 the previous formula underestimated group tax expense by 21.63. Its tax rate came from FY 2020 alone (13.83%). The new forecast divides total tax expense by total pre-tax profit over the three most recent completed fiscal years available at the baseline. For FY 2021 the pooled rate is 23.15%; the reported outcome was 38.01%. FY 2018 and 2019 seed only the tax history using the consolidated income statement published in the 2019 annual report. Forecast rates outside the supported 0–60% range or a nonpositive pooled denominator fall back to the baseline effective rate. Historical scenario presets load the selected report’s tax rate for reconciliation. [FY 2019 annual report](https://static.cninfo.com.cn/finalpage/2020-03-30/1207423515.PDF)
+
+Associate and JV income now uses the prior report’s monthly earnings times scenario months. CMOC’s investments include Huayue nickel/cobalt and the Chinese molybdenum joint venture. Their earnings can vary independently of consolidated copper margins. In FY 2023 the copper-linked formula overstated associate income by 13.79. A monthly run rate still leaves exposure to new investments and project ramp-ups. [FY 2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-18/1216148712.PDF)
+
+The revised FY 2021 estimate still understates tax expense by 13.68. For FY 2022 the tax-expense error falls from a 5.61 overestimate to a 0.35 underestimate, while other pre-tax items and associate income remain 8.06 and 6.48 below reported amounts. In FY 2023 the associate-income overestimate falls to 2.70. Other pre-tax items are still 28.09 too high and minority profit is 27.92 too high, so those two errors nearly offset in attributable profit.
+
+The FY 2020–2022 records preserve copper/cobalt, molybdenum/tungsten and niobium/phosphate group economics. For each pair, combined reported tonnes multiplied by the blended unit price or cost recovers the disclosed group revenue or cost of sales. The 2020 niobium and phosphate financial lines are summed for comparability. Australian NPM stays in the residual, as in subsequent years. The grouped reports appear in the validation audit and sources. Interactive single-product presets begin in 2023. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-03-23/1209426961.PDF) · [2021 annual report](https://static.cninfo.com.cn/finalpage/2022-03-19/1212626342.PDF) · [2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-18/1216148712.PDF)
 
 The bridge scales other net pre-tax items by mining product revenue at the baseline ratio. Trading, eliminations and expenses can move differently from mining margins. For example, a higher unit sales cost now reduces mining gross profit while leaving this revenue-based line unchanged.
 
-The model allocates group net profit up to the comparable baseline amount at the baseline parent share. Additional profit uses the change in attributable profit divided by the change in group net profit between the two most recent consecutive annual reports available at the baseline. The baseline share also applies to losses and substitutes for an unavailable or out-of-range incremental share. The FY 2024 test uses the baseline share because the 2022–2023 incremental share exceeds 100%. For FY 2025 the incremental share is 76.24%, versus 87.53% on baseline earnings. The FY 2025 minority-profit estimate is 35.35 against 36.89 reported. The revised total still contains offsetting errors.
+The model allocates group net profit up to the comparable baseline amount at the baseline parent share. Additional profit uses the change in attributable profit divided by the change in group net profit between the two most recent consecutive annual reports available at the baseline. The baseline share also applies to losses and substitutes for an unavailable or out-of-range incremental share. The FY 2024 test uses the baseline share because the 2022–2023 incremental share exceeds 100%. For FY 2025 the incremental share is 76.24%, versus 87.53% on baseline earnings. The FY 2025 minority-profit estimate is 37.59 against 36.89 reported. The revised total still contains offsetting errors.
 
 Scenario months scale the baseline group net profit to the modeled period. Applying annual guidance sets 12 months. Historical presets use their own duration, including the two 2026 interim reports. Those reports remain available for scenario reconciliation. Scenario exports include the two allocation rates and the baseline net profit per month.
 
@@ -57,7 +63,7 @@ Scenario months scale the baseline group net profit to the modeled period. Apply
 
 On the Zijin tab, the preset cards are ordered **Sales volume parameters → Price parameters → Historical parameters**. Sales volume and historical selections apply when their button is clicked. The price dropdown contains only **Latest snapshot**, with an apply button to restore that saved set after edits. Separate **+10%** and **−10%** buttons immediately compound on the current selling prices. The source-period label and JSON export continue to refer to the last applied historical preset, even when another period is selected. This label identifies the parameter origin, not a claim that edited costs and ratios still equal the original values. The groups have separate scopes:
 
-- **Sales volume parameters:** set gold, copper and silver sales volumes from the selected annual guidance. Preserve zinc, all selling prices, costs and advanced parameters. When starting from an interim historical preset, the retained zinc volume still needs an explicit annual assumption.
+- **Sales volume parameters:** set gold, copper and silver sales volumes from the selected annual guidance. Preserve zinc, all selling prices, costs and other profit assumptions. Annual guidance sets the scenario duration to 12 months. When starting from an interim historical preset, the retained zinc volume still needs an explicit annual assumption.
 - **Price parameters:** restore the latest saved four-metal selling-price assumptions, or use the immediate ±10% buttons. All price actions preserve sales volumes, costs and advanced parameters and honor active display units. Snapshot dates and source details remain available on the page.
 - **Historical parameters:** load reported sales volumes, realized prices, unit sales costs, tax, attribution and profit bridge parameters together.
 
@@ -112,7 +118,7 @@ In the Zijin model, gold and silver production is in tonnes and price/cost in CN
 consolidated sales (t) = quantity entered in Sales volume * volume_to_t
 metal gross profit (CNY 100m) = consolidated sales (t) * (selling price - sales cost) * price_units_per_t / 1e8
 associate earnings = copper GP * associate earnings ratio
-other net pre-tax items = total four-metal GP * other items ratio
+other net pre-tax items = baseline residual / baseline months * scenario months
 pre-tax profit = four-metal GP + associate earnings + other net pre-tax items
 tax = max(pre-tax profit, 0) * effective tax rate
 group net profit = pre-tax profit - tax
@@ -124,7 +130,7 @@ In these formulas, prices and costs use the canonical CNY units above. `volume_t
 
 Annual tests use consolidated sales. Manually entered quantities and production guidance are treated as sold in full, including when a guidance figure contains equity-accounted output. Associate earnings are explicitly modeled separately, using copper GP as a simplified driver for all associates.
 
-The residual other net pre-tax bridge is determined by baseline pre-tax profit less four-metal GP and associate earnings. It includes other mining products, refining/trading, eliminations, operating/financing expenses, resource taxes, impairments and other income. It scales with GP, which is an empirical simplification, not a full expense budget. Tax is an effective group rate, not an additional statutory tax on individual associate profits. Unit sales costs already include depreciation/amortization and transport; neither depreciation nor capex is deducted again.
+The residual other net pre-tax bridge is determined by baseline pre-tax profit less four-metal GP and associate earnings. It includes other mining products, refining/trading, eliminations, operating/financing expenses, resource taxes, impairments and other income. The formula carries forward the net monthly amount. Administrative and financing costs, eliminations and other activities can move independently of mining margins. Changes in the size or mix of those activities remain a source of error. Tax is an effective group rate, not an additional statutory tax on individual associate profits. Unit sales costs already include depreciation/amortization and transport; neither depreciation nor capex is deducted again.
 
 The incremental adjustment is **attributable, after-tax** and only includes contributions beyond those already implied by the bridge. It is not added to displayed group profit or NCI. It is not backtested. Use it carefully for incremental lithium/molybdenum projects, acquisitions, hedging and one-offs; do not add all already consolidated Zangge earnings again.
 
@@ -134,15 +140,15 @@ Both tabs default to the latest five complete fiscal years in the report history
 
 Configured thresholds: annual MAPE ≤15% and maximum annual absolute percentage error ≤25%. Signed error is `100 * (estimated / actual - 1)`; MAPE is the unweighted mean of absolute annual percentage errors.
 
-| Test period | Parameter year | Estimated attributable, CNY 100m | Actual, CNY 100m | Signed error |
-| --- | --- | ---: | ---: | ---: |
-| 2021 | 2020 | 118.73 | 156.73 | −24.24% |
-| 2022 | 2021 | 188.27 | 200.42 | −6.06% |
-| 2023 | 2022 | 204.83 | 211.19 | −3.01% |
-| 2024 | 2023 | 299.52 | 320.51 | −6.55% |
-| 2025 | 2024 | 484.17 | 517.77 | −6.49% |
+| Test period | Parameter year | Estimated attributable, CNY 100m | Actual, CNY 100m | Previous error | Revised error |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 2021 | 2020 | 147.18 | 156.73 | −24.24% | −6.09% |
+| 2022 | 2021 | 196.92 | 200.42 | −6.06% | −1.74% |
+| 2023 | 2022 | 206.02 | 211.19 | −3.01% | −2.45% |
+| 2024 | 2023 | 326.03 | 320.51 | −6.55% | +1.72% |
+| 2025 | 2024 | 515.52 | 517.77 | −6.49% | −0.44% |
 
-Annual MAPE is approximately 9.27%. Maximum absolute percentage error is 24.24%. Meeting the configured thresholds describes these historical conditional tests; it is not an external certification or a future error guarantee. Model design had access to these years, so they are not a blind holdout; actual future production and prices are unknown. Prior-year annual reports also become available only after publication in the following year.
+Five-year MAPE falls from 9.27% to 2.49% and maximum absolute percentage error from 24.24% to 6.09%. In FY 2021 the old formula deducted 105.77 of other pre-tax items versus 66.89 reported. The duration-based projection deducts 58.35. Associate earnings remain 11.21 below the reported amount. Meeting the configured thresholds describes these historical conditional tests; it is not an external certification or a future error guarantee. Model design had access to these years, so they are not a blind holdout; actual future production and prices are unknown. Prior-year annual reports also become available only after publication in the following year.
 
 Original 2022 group production was visually checked in its own annual report: gold 56,360 kg, copper 877,317 t, zinc 402,321 t (excluding lead), silver 387,458 kg. Later 2023 comparatives change some of these figures, and are deliberately not used in the 2022 parameter anchor. Product sales and costs were visually cross-checked on PDF pp50–51; production on pp30, 33 and 53. Subsequent annual and interim source locations and links are included in the HTML and authoritative record.
 
