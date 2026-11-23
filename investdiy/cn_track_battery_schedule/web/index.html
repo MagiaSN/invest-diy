@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="page.title">中国锂电池排产数据跟踪</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+  <span class="topbar-sep">/</span><span class="topbar-title" data-i18n="shortTitle">锂电池排产</span>
+  <span class="topbar-right" id="asof"></span>
+</div></header>
+<main class="page">
+  <div class="intro">
+    <h1 class="page-title" data-i18n="page.title">中国锂电池排产数据跟踪</h1>
+    <p class="lede" data-i18n="intro"></p>
+  </div>
+  <p id="status" role="status" data-i18n="common.loading"></p>
+  <div id="charts"></div>
+  <template id="series-card">
+    <section class="card series-card">
+      <h2></h2>
+      <label class="series-view">
+        <span data-i18n="viewLabel"></span>
+        <select>
+          <option value="" data-i18n="viewCombined"></option>
+          <option value="survey_a" data-i18n="attribution.survey_a"></option>
+          <option value="citi_a" data-i18n="attribution.citi_a"></option>
+        </select>
+      </label>
+      <div class="headline"><strong></strong> <span>GWh</span></div>
+      <p class="latest note"></p>
+      <div class="chart"></div>
+      <div class="picker"></div>
+      <p class="coverage note"></p>
+      <p class="scope note"></p>
+    </section>
+  </template>
+  <section class="card" id="history">
+    <div class="card-head">
+      <h2 data-i18n="history">月度明细</h2>
+      <span class="dl" data-files="monthly"></span>
+    </div>
+    <div class="tablebox"><table class="table">
+      <thead><tr>
+        <th scope="col" data-i18n="month">排产月份</th>
+        <th scope="col" data-i18n="mainland">中国大陆</th>
+        <th scope="col" data-i18n="catl">宁德时代</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <p class="note" data-i18n="tableNote"></p>
+  </section>
+  <details class="card method">
+    <summary data-i18n="method">数据获取 SOP</summary>
+    <ol>
+      <li data-i18n="methodScope"></li>
+      <li data-i18n="methodDate"></li>
+      <li data-i18n="methodVerify"></li>
+    </ol>
+  </details>
+</main>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -30,7 +30,7 @@ def ensure_resolvable(host: str) -> None:
     except socket.gaierror:
         pass
     r = requests.get(
-        "https://cloudflare-dns.com/dns-query",
+        "https://1.1.1.1/dns-query",
         params={"name": host, "type": "A"},
         headers={"accept": "application/dns-json"},
         timeout=10,

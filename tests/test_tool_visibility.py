@@ -115,6 +115,12 @@ class ProjectVisibilityTests(unittest.TestCase):
         self.assertEqual(registry.discover()['global-track-gold'][0].visibility, 'local')
         self.assertNotIn('global-track-gold', registry.discover(public_only=True))
 
+    def test_battery_tracker_is_last_locally_and_excluded_from_public_discovery(self):
+        slug = 'cn-track-battery-schedule'
+        local = tools_payload(registry.discover())
+        self.assertEqual((local[-1]['slug'], local[-1]['visibility']), (slug, 'local'))
+        self.assertNotIn(slug, registry.discover(public_only=True))
+
     def test_copper_is_local_and_excluded_from_public_discovery(self):
         self.assertEqual(registry.discover()['global-track-copper'][0].visibility, 'local')
         self.assertNotIn('global-track-copper', registry.discover(public_only=True))

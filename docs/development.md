@@ -87,6 +87,7 @@ Current coverage:
 | `ashare-track-national-team-etf` | `update.yml` → `site` artifact |
 | `cn-track-pboc-gold` | `update.yml` → `site` artifact |
 | `global-track-container-freight` | `sse-update.yml` → `sse-history-encrypted` artifact, imported with the existing sync command |
+| `cn-track-battery-schedule` | Local update command for TD market estimates and reviewed CATL reports |
 | `global-track-gold` | Local update command; no Actions coverage |
 | `global-track-copper` | Local update command; no Actions coverage |
 | `company-profit` | `update.yml` → `site` artifact; metal prices and FX snapshot |
@@ -133,6 +134,7 @@ Missing/expired artifacts, authentication failures or a missing decryption key a
 After attempting the Actions imports, run the `TOOL["update"]` command for each uncovered tool in scope, replacing its Python executable with `.venv/bin/python3` and preserving any arguments. With the current coverage, run each requested local update independently even if another fails:
 
 ```bash
+.venv/bin/python3 -m investdiy.cn_track_battery_schedule
 .venv/bin/python3 -m investdiy.global_track_gold
 .venv/bin/python3 -m investdiy.global_track_copper
 ```

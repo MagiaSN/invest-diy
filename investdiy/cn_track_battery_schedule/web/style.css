@@ -1,0 +1,34 @@
+.intro { display: grid; gap: 8px; }
+.page-title { font-size: clamp(26px, 3vw, 38px); }
+#charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.series-card { min-width: 0; border-top: 3px solid var(--series); gap: 7px; }
+.series-card.mainland { --series: var(--s4); }
+.series-card.catl { --series: var(--s1); }
+.headline { display: flex; gap: 7px; align-items: baseline; color: var(--fg-muted); }
+.headline strong { font: 400 42px/1.15 var(--font-num); color: var(--fg); }
+.chart { height: clamp(220px, 28vw, 290px); min-width: 0; }
+.scope { border-top: 1px solid var(--line); padding-top: 9px; margin-top: 5px; }
+.table td, .table th { text-align: left; vertical-align: top; }
+.table td { font-size: 14px; }
+.table .source, .table .previous, .table .followup { display: block; font-size: 12px; white-space: normal; }
+.table .previous { color: var(--fg-muted); }
+.table .source, .table .followup { margin-top: 3px; }
+.table { table-layout: fixed; }
+.table th:first-child { width: 18%; }
+.method summary { cursor: pointer; font-weight: 600; }
+.method ol { margin: 12px 0 0; padding-inline-start: 24px; }
+.method li + li { margin-top: 6px; }
+#status { margin: 0; }
+@media (max-width: 540px) {
+  .card { padding: 14px 12px; }
+  .table th:first-child { width: 23%; }
+  .table th, .table td { padding: 7px 4px; }
+  .topbar-right { display: none; }
+}
+
+.chart rect.inferred { fill-opacity: .35; stroke-dasharray: 3 2; }
+.record + .record { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.attribution { display: inline-block; margin-inline-start: .5em; color: var(--fg-muted); font-size: 12px; }
+
+.series-view { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-muted); }
+.series-view select { padding: 3px 6px; font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; }
