@@ -9,6 +9,7 @@ import json
 import re
 from pathlib import Path
 
+from . import annual_history, cmoc
 from .prices import fetch_snapshot
 from ..common import net
 
@@ -33,6 +34,17 @@ def load_baseline(source: Path | None = None) -> dict:
         if hashlib.sha256(raw).hexdigest() != BASELINE_SHA256:
             raise ValueError("Company baseline checksum mismatch")
         data = json.loads(raw)
+    annual_history.extend_zijin(data)
+    validate_baseline(data)
+    if source is None and not cached.exists():
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        temporary = cached.with_suffix(".tmp")
+        temporary.write_bytes(raw)
+        temporary.replace(cached)
+    return data
+
+
+def validate_baseline(data: dict) -> None:
     if data["version"] != 1 or not data["history"]:
         raise ValueError("Unsupported or empty company baseline")
     for row in data["history"]:
@@ -47,27 +59,26 @@ def load_baseline(source: Path | None = None) -> dict:
             calculated = m["sales"] * (m["price"] - m["cost"]) * m["factor"] / 1e8
             if abs(calculated - m["gp"]) > 1e-8:
                 raise ValueError(f"Unit conversion mismatch: {row['year']} {m['id']}")
-    if source is None and not cached.exists():
-        cached.parent.mkdir(parents=True, exist_ok=True)
-        temporary = cached.with_suffix(".tmp")
-        temporary.write_bytes(raw)
-        temporary.replace(cached)
-    return data
 
 
 def build(source: Path | None = None) -> Path:
     data = load_baseline(source)
+    data.pop("cmoc", None)
+    cmoc_data = cmoc.baseline()
+    validate_baseline(cmoc_data)
     data["market"] = fetch_snapshot()
     out = PACKAGE / "data" / "out"
     out.mkdir(parents=True, exist_ok=True)
-    history_json = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    history_json = json.dumps({**data, "cmoc": cmoc_data}, ensure_ascii=False, indent=2) + "\n"
     js = "window.CompanyProfitData = " + json.dumps(data, ensure_ascii=False) + ";\n"
-
+    cmoc_js = "window.CmocProfitData = " + json.dumps(cmoc_data, ensure_ascii=False) + ";\n"
     html = (PACKAGE / "web" / "index.html").read_text(encoding="utf-8")
 
     def asset(path: str) -> str:
         if path == "data/history.js":
             return js
+        if path == "data/cmoc-history.js":
+            return cmoc_js
         if path.startswith("/static/"):
             return (ROOT / "investdiy" / "web" / path.lstrip("/")).read_text(encoding="utf-8")
         return ((out / path[5:]) if path.startswith("data/") else (PACKAGE / "web" / path)).read_text(encoding="utf-8")
@@ -85,7 +96,7 @@ def build(source: Path | None = None) -> Path:
     writer = csv.DictWriter(buffer, fieldnames=list(status))
     writer.writeheader()
     writer.writerow(status)
-    for name, contents in (("history.json", history_json), ("history.js", js),
+    for name, contents in (("history.json", history_json), ("history.js", js), ("cmoc-history.js", cmoc_js),
                            (destination.name, html), ("market-status.csv", buffer.getvalue())):
         temporary = out / (name + ".tmp")
         temporary.write_text(contents, encoding="utf-8")

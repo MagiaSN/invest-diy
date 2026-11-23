@@ -1,4 +1,4 @@
-/* Production guidance: company announcement 2026-012, 9 February 2026, PDF p3. */
+/* Company production guidance and market-price conversions. */
 (function (root) {
   'use strict';
   const source = 'https://www.zijinmining.com/upload/file/2026/02/09/c08d3f959bdd4800a9c30c15e6afaab5.pdf';
@@ -8,9 +8,18 @@
     '2028-mid': {gold: 135, copper: 155, silver: 650},
     '2028-high': {gold: 140, copper: 160, silver: 700},
   };
-  function production(id) {
+  const cmocPlans = {
+    '2026-mid': {copper: 79, cobalt: 11, molybdenum: 13000, tungsten: 7000, niobium: 10500, gold: 7, phosphate: 115},
+    '2026-low': {copper: 76, cobalt: 10, molybdenum: 11500, tungsten: 6500, niobium: 10000, gold: 6, phosphate: 105},
+    '2026-high': {copper: 82, cobalt: 12, molybdenum: 14500, tungsten: 7500, niobium: 11000, gold: 8, phosphate: 125},
+  };
+  const guidance = {
+    zijin: {plans, source},
+    cmoc: {plans: cmocPlans, source: 'https://static.cninfo.com.cn/finalpage/2026-04-02/1225072765.PDF'},
+  };
+  function production(id, company = 'zijin') {
+    const plans = guidance[company].plans;
     if (!Object.hasOwn(plans, id)) throw new Error('Unknown production preset');
-    // Zinc/lead guidance cannot replace zinc-only output. Lithium/molybdenum are outside the model.
     return {...plans[id]};
   }
   function realizedPrice(quote, vat, realization) {
@@ -23,7 +32,8 @@
     if (value > 1e7) throw new Error('Price out of range');
     return value;
   }
-  const priceUnits = {gold: ['CNY/g', 'USD/oz'], copper: ['CNY/t', 'USD/t', 'USD/lb'], zinc: ['CNY/t'], silver: ['CNY/g']};
+  const priceUnits = {gold: ['CNY/g', 'USD/oz'], copper: ['CNY/t', 'USD/t', 'USD/lb'], zinc: ['CNY/t'], silver: ['CNY/g'],
+    cobalt: ['CNY/t'], molybdenum: ['CNY/t'], tungsten: ['CNY/t'], niobium: ['CNY/t'], phosphate: ['CNY/t']};
   function priceFactor(id, unit, fx) {
     if (!priceUnits[id]?.includes(unit)) throw new Error('Unknown price unit');
     if (unit.startsWith('CNY/')) return 1;
@@ -44,7 +54,7 @@
     return value / priceFactor(id, unit, fx);
   }
   function snapshotPrices(snapshot) {
-    const ids = Object.keys(priceUnits);
+    const ids = ['gold', 'copper', 'zinc', 'silver'];
     if (!snapshot || !Number.isFinite(Date.parse(snapshot.fetched_at)) ||
         !Number.isFinite(snapshot.fx?.cny_per_usd) || snapshot.fx.cny_per_usd <= 0 ||
         !Number.isFinite(Date.parse(snapshot.fx.as_of)) || !Array.isArray(snapshot.quotes) ||
@@ -56,7 +66,7 @@
       return {id, vat, realization, price: realizedPrice(quote, vat, realization)};
     });
   }
-  const api = {source, production, realizedPrice, priceUnits, toBasePrice, fromBasePrice, snapshotPrices};
+  const api = {guidance, source, production, realizedPrice, priceUnits, toBasePrice, fromBasePrice, snapshotPrices};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CompanyProfitPresets = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

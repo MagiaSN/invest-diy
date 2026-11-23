@@ -9,7 +9,7 @@ const close = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance,
 const clone = value => JSON.parse(JSON.stringify(value));
 
 test('tonnes, 10,000 tonnes, grams and CNY 100m use independent hand calculations', () => {
-  const input = {metals: M.ids.map(id => ({id,production:1,conversion:1,price:0,cost:0})), tax:25,share:80,other:0,associate:0,adjustment:0};
+  const input = {metals: M.ids.map(id => ({id,production:1,price:0,cost:0})), tax:25,share:80,other:0,associate:0,adjustment:0};
   input.metals[0].price = 500; input.metals[0].cost = 200; // 1 tonne * CNY 300/g = CNY 300m
   input.metals[1].price = 60000; input.metals[1].cost = 40000; // 10kt * CNY 20,000/t = CNY 200m
   const result = M.estimate(input);
@@ -26,40 +26,56 @@ test('all historical baseline calibrations reconcile both income attribution and
 
 test('interim annualization scales flows but leaves prices, costs, tax and attribution fixed', () => {
   const base = D.history.find(r => r.year === '20269M');
-  const input = M.defaults(base); close(input.metals[0].production, 70.13 * 4 / 3);
+  const input = M.defaults(base); close(input.metals[0].production, 66.793 * 4 / 3);
   close(input.metals[0].price, base.metals[0].price);
   close(M.estimate(input).parent, base.actual * 4 / 3);
 });
 
-test('walk-forward predictions do not consume target costs, sales, profits, tax, NCI or bridge parameters', () => {
-  const before = M.backtest(D.history, '2025');
-  const history = clone(D.history), target = history.find(r => r.year === '2025');
-  Object.assign(target, {actual:1,net:1,nci:0,pretax:1,tax:.9,share:.1,associate:9000,other:9000,gp:1});
-  target.metals.forEach(m => { m.cost = 1e6; m.sales = 1; m.conversion = .01; m.gp = 1; });
-  close(before.predicted, M.backtest(history, '2025').predicted);
+test('annual tests consume reported sales, price and cost and freeze the rest of the model', () => {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
+    const history = clone(data.history), target = history.find(r => r.year === '2025');
+    const predict = () => M.backtest(history, target.year, company);
+    const before = predict();
+    before.input.metals.forEach((m, i) => {
+      const actual = target.metals[i];
+      close(m.production * M.products[m.id].salesScale, actual.sales);
+      close(m.price, actual.price); close(m.cost, actual.cost);
+      close(M.estimate(before.input, company).metals[i].gp, actual.gp);
+    });
+    Object.assign(target, {actual:1, net:1, nci:0, pretax:1, tax:.9, share:.1, associate:9000, other:9000, gp:1});
+    target.metals.forEach(m => { m.production = 1; m.conversion = .01; m.gp = 1; });
+    close(before.predicted, predict().predicted);
+    target.metals[0].sales *= .5;
+    assert.ok(predict().predicted < before.predicted);
+    target.metals[0].sales *= 2;
+    target.metals[0].cost += 100;
+    assert.ok(predict().predicted < before.predicted);
+    for (const period of ['2026H1', '20269M']) assert.throws(() => M.backtest(history, period, company), /annual/);
+  }
 });
 
 test('annual validation meets preset gates; original 2022 output is preserved', () => {
-  const first = D.history[0];
+  const first = D.history.find(r => r.year === '2022');
   assert.equal(first.year, '2022'); close(first.metals[1].production,87.7317); close(first.metals[3].production,387.458);
-  const rows = ['2023','2024','2025'].map(y => M.backtest(D.history,y));
+  const rows = M.annualBacktests(D.history, 'zijin');
   const stats = M.metrics(rows);
   assert.ok(stats.mape <= D.thresholds.mape); assert.ok(stats.maxError <= D.thresholds.maxError);
-  assert.ok(rows[0].error > 17 && rows[0].error < 18);
+  close(stats.mape, 9.27, .005); close(stats.maxError, 24.24, .005);
+  close(rows[0].error, -24.24, .005);
   assert.ok(rows[1].error < 0 && rows[2].error < 0);
   // Positive price sensitivity is economically necessary in the calibrated regime.
-  const input = M.defaults(D.history[3]); const initial = M.estimate(input).parent;
+  const input = M.defaults(D.history.find(r => r.year === '2025')); const initial = M.estimate(input).parent;
   for (let i = 0; i < 4; i++) { const changed = clone(input); changed.metals[i].price *= 1.1; assert.ok(M.estimate(changed).parent > initial); }
 });
 
 test('no automatic tax asset on losses; incremental attributable adjustments are separate', () => {
-  const input = M.defaults(D.history[3]); input.metals.forEach(m => { m.price = 0; });
+  const input = M.defaults(D.history.find(r => r.year === '2025')); input.metals.forEach(m => { m.price = 0; });
   const loss = M.estimate(input); assert.ok(loss.parent < 0); close(loss.tax,0);
   input.adjustment = 10; const adjusted = M.estimate(input); close(adjusted.parent,loss.parent+10); close(adjusted.net,loss.net);
 });
 
 test('empty strings, non-finite values, negative quantities and invalid ownership fail closed', () => {
-  const base = M.defaults(D.history[3]);
+  const base = M.defaults(D.history.find(r => r.year === '2025'));
   for (const value of ['', null, NaN, Infinity, -1]) { const input = clone(base); input.metals[0].production = value; assert.throws(() => M.estimate(input)); }
   for (const value of [101, -1, Infinity]) { const input = clone(base); input.share = value; assert.throws(() => M.estimate(input)); }
 });
@@ -75,7 +91,7 @@ test('production guidance preserves the disclosed ranges and does not invent zin
   assert.deepEqual(P.production('2028-mid'), {gold:135,copper:155,silver:650});
   assert.deepEqual(P.production('2028-high'), {gold:140,copper:160,silver:700});
   assert.throws(() => P.production('2027'));
-  const input = M.defaults(D.history[3], false), before = clone(input);
+  const input = M.defaults(D.history.find(r => r.year === '2025'), false), before = clone(input);
   const plan = P.production('2026');
   input.metals.forEach(m => { if (Object.hasOwn(plan,m.id)) m.production = plan[m.id]; });
   close(input.metals[2].production,before.metals[2].production);
@@ -120,4 +136,84 @@ test('latest snapshot applies a complete dated set with explicit tax conversion'
   const values = P.snapshotPrices(snapshot);
   for (const [i, expected] of [900,100000,20000,10].entries()) close(values[i].price, expected);
   for (const bad of [null, {...snapshot,fx:null}, {...snapshot,quotes:snapshot.quotes.slice(1)}, {...snapshot,conversion:null}]) assert.throws(() => P.snapshotPrices(bad));
+});
+
+test('CMOC historical product economics reconcile to reported product and group results', () => {
+  const history = D.cmoc.history;
+  for (const base of history) {
+    const result = M.estimate(M.defaults(base, false), 'cmoc');
+    close(result.parent, base.actual); close(result.net, base.net); close(result.nci, base.nci);
+    result.metals.forEach((m, i) => close(m.gp, base.metals[i].gp));
+  }
+  const recent = history.at(-1);
+  const byId = Object.fromEntries(recent.metals.map(m => [m.id, m]));
+  close(byId.gold.production, 160913 * 31.1034768 / 1e6);
+  close(byId.gold.price, 4707290 * 1000 / (158064 * 31.1034768));
+  close(byId.cobalt.conversion, 12661 / 99694);
+  close(byId.phosphate.production, 83.102);
+  close(byId.tungsten.production, 5034);
+  close(recent.actual, 240.1951286956);
+  assert.throws(() => M.estimate(M.defaults(recent), 'zijin'));
+});
+
+test('CMOC guidance uses the disclosed unit ranges', () => {
+  const bounds = {
+    copper: [76, 82], cobalt: [10, 12], molybdenum: [11500, 14500],
+    tungsten: [6500, 7500], niobium: [10000, 11000], gold: [6, 8], phosphate: [105, 125],
+  };
+  for (const [id, [low, high]] of Object.entries(bounds)) {
+    close(P.production('2026-low', 'cmoc')[id], low);
+    close(P.production('2026-high', 'cmoc')[id], high);
+    close(P.production('2026-mid', 'cmoc')[id], (low + high) / 2);
+  }
+});
+
+test('CMOC separates mining revenue exposure from unit margins and allocates only incremental profit', () => {
+  const history = D.cmoc.history;
+  const rows = ['2024', '2025'].map(y => M.backtest(history, y, 'cmoc'));
+  const stats = M.metrics(rows);
+  close(rows[0].predicted, 142.24, .005); close(rows[1].predicted, 186.89, .005);
+  close(stats.mape, 6.61, .005); close(stats.maxError, 8.11, .005);
+  close(rows[0].input.share, rows[0].input.marginalShare);
+  const input = rows[1].input, a = history.find(r => r.year === '2023'), b = history.find(r => r.year === '2024');
+  close(input.marginalShare, 100 * (b.actual - a.actual) / (b.net - a.net));
+  const r = M.estimate(input, 'cmoc');
+  close(r.parent, b.actual + (r.net - b.net) * input.marginalShare / 100);
+  const trial = clone(input); trial.metals[0].cost += 1000;
+  const changed = M.estimate(trial, 'cmoc');
+  close(changed.other, r.other); assert.ok(changed.gp < r.gp);
+  trial.metals.forEach(m => { m.price = 0; });
+  const loss = M.estimate(trial, 'cmoc');
+  assert.ok(loss.net < 0); close(loss.parent, loss.net * input.share / 100);
+  const interim = history.at(-1), annualized = M.defaults(interim, true, history);
+  close(annualized.months, 12);
+  close(M.estimate(annualized, 'cmoc').parent, interim.actual * 12 / interim.months);
+  for (const previous of [{...a, net:b.net}, {...a, actual:b.actual + 1}]) {
+    const fallback = M.defaults(b, false, [previous, b]);
+    close(fallback.marginalShare, fallback.share);
+  }
+});
+
+test('five-year windows roll on a new annual report and exclude interim reports', () => {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
+    const history = clone(data.history);
+    const years = () => M.annualBacktests(history, company).map(r => r.year);
+    assert.deepEqual(years(), ['2021', '2022', '2023', '2024', '2025']);
+    history.unshift({...history.find(r => r.year === '2025'), year:'2026'});
+    assert.deepEqual(years(), ['2022', '2023', '2024', '2025', '2026']);
+  }
+});
+
+test('CMOC grouped annual disclosures reconcile across the 2023 reporting transition', () => {
+  const history = D.cmoc.history;
+  const rows = M.annualBacktests(history, 'cmoc');
+  close(M.metrics(rows).mape, 15.38, .005); close(M.metrics(rows).maxError, 33.64, .005);
+  const first = M.estimate(rows[0].input, 'cmoc').metals[0];
+  close(first.sales, 205081 + 17085);
+  close(first.revenue, 13268256624.20 / 1e8);
+  close(first.totalCost, 6241622321.72 / 1e8);
+  const base = history.find(r => r.year === '2022');
+  const result = M.estimate(rows[2].input, 'cmoc');
+  close(result.associate, (result.metals[0].gp + result.metals[1].gp) * base.associate / base.metals[0].gp);
+  assert.equal(rows[3].input.groupedCopperDriver, undefined);
 });

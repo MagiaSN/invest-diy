@@ -20,6 +20,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ## Rules
 
 - **Data refresh requests follow the [Data update SOP](docs/development.md#data-update-sop)**: first pull the latest available GitHub Actions data, including separate collection workflows; then run local updates only for tools not covered by Actions. Skip tools without an update command and report synchronization failures instead of silently treating covered tools as uncovered.
+- **Company profit model and backtests:** Use sales volume as the quantity input and company production guidance for its presets. Selling prices and unit sales costs are also user inputs. The model maps those inputs to earnings. Default to the latest five complete fiscal years, with the preceding annual report as the first baseline. For model error, use reported full-year sales volumes, realized prices and unit sales costs from the original annual report, freeze the other model parameters at the prior baseline, and compare estimated and reported earnings for that same period. Evaluate input forecasts separately from model accuracy.
 - **One tool, one sub-package** under `investdiy/`; shared logic goes in `investdiy/common/` (Python) or `investdiy/web/static/` (front end).
 - **Pages are local only**: no CDNs; vendor libraries under `investdiy/web/static/vendor/`.
 - **Every page is bilingual** (English and Chinese): static text via `data-i18n` keys, dynamic text via `i18n.t()`, metadata via `title_en` / `description_en` / `kind_en`.
