@@ -1,14 +1,15 @@
 (function () {
   'use strict';
   const M = window.CompanyProfitModel, P = window.CompanyProfitPresets, data = window.CompanyProfitData;
-  const histories = {zijin: data, cmoc: window.CmocProfitData};
+  const histories = {zijin: data, cmoc: window.CmocProfitData, cnooc: window.CnoocProfitData};
+  const firstCompany = Object.keys(histories).find(id => histories[id]);
   const $ = id => document.getElementById(id);
-  if (!histories.zijin && !histories.cmoc) { $('error').hidden = false; $('error').textContent = i18n.t('common.failed'); $('results').hidden = true; $('download').disabled = true; return; }
+  if (!firstCompany) { $('error').hidden = false; $('error').textContent = i18n.t('common.failed'); $('results').hidden = true; $('download').disabled = true; return; }
   const snapshot = data?.market, fx = snapshot?.fx?.cny_per_usd;
   const saved = {};
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const localized = [...$('company-panel').querySelectorAll('[data-i18n]')].map(el => [el, el.dataset.i18n]);
-  let company, ids, D, annual, stats, units, priceValues, latest;
+  let company, ids, D, guidance, annual, stats, units, priceValues, latest;
   let base, reference, input, current, valid, productionApplied, marketApplied;
   const keyFor = k => i18n.has(company + '.' + k) ? company + '.' + k : k;
   const t = (k, vars) => i18n.t(keyFor(k), vars);
@@ -18,6 +19,8 @@
   const fields = {
     zijin: [...commonFields, ['associate', -100, 200], ['otherMonthly', -10000, 10000]],
     cmoc: [...commonFields, ['associateMonthly', -10000, 10000], ['other', -200, 200], ['marginalShare', 0, 100]],
+    cnooc: [['tax', 0, 60], ['months', 1, 12], ['associateMonthly', -10000, 10000],
+      ['other', -200, 200], ['nciMonthly', -10000, 10000], ['adjustment', -10000, 10000]],
   };
   const priceDigits = id => units[id] === 'USD/lb' ? 6 : 4;
   function priceLimit(id) {
@@ -106,7 +109,15 @@
     $('bull').disabled = !valid || input.metals.some(m => m.price * 1.1 > 1e7);
     $('bear').disabled = !valid;
     if (!valid) { $('band').textContent = ''; $('scenario-warning').textContent = ''; return; }
-    const extreme = input.metals.some((m, i) => m.production < reference.metals[i].production * .7 || m.production > reference.metals[i].production * 1.3 || m.price < reference.metals[i].price * .5 || m.price > reference.metals[i].price * 1.5 || m.cost < reference.metals[i].cost * .8 || m.cost > reference.metals[i].cost * 1.2) || current.gp <= base.gp * .2 || input.adjustment !== 0 || fields[company].some(([k]) => {
+    const durationScale = company === 'cnooc' ? input.months / reference.months : 1;
+    const extremeProduct = input.metals.some((m, i) => {
+      const baseline = reference.metals[i];
+      const volume = baseline.production * durationScale;
+      return m.production < volume * .7 || m.production > volume * 1.3 ||
+        m.price < baseline.price * .5 || m.price > baseline.price * 1.5 ||
+        m.cost < baseline.cost * .8 || m.cost > baseline.cost * 1.2;
+    });
+    const extreme = extremeProduct || current.gp <= base.gp * durationScale * .2 || input.adjustment !== 0 || fields[company].some(([k]) => {
       if (k.endsWith('Monthly')) return Math.abs(input[k] - reference[k]) > Math.max(1, Math.abs(reference[k]) * .2);
       return k !== 'months' && Math.abs(input[k] - reference[k]) > 5;
     });
@@ -120,18 +131,27 @@
   }
   function renderPresetNotes() {
     $('baseline-note').textContent = t('baseline.selected', {period:period(base.year)});
-    $('production-preview').textContent = t('production.preview', P.production($('production-preset').value, company));
+    const plan = $('production-preset').value;
+    $('production-preview').textContent = t('production.preview', {total: guidance.plans[plan], ...P.production(plan, company, guidance)});
+    $('cnooc-sources').hidden = company !== 'cnooc';
+    if (company === 'cnooc') {
+      $('report-source').href = base.url;
+      $('cost-source').href = base.costUrl;
+      $('cost-source').hidden = base.costUrl === base.url;
+      $('guidance-source').href = guidance.source;
+    }
     $('production-applied').hidden = !productionApplied;
     $('production-applied').textContent = productionApplied ? t('production.applied', {plan:t('plan.' + productionApplied)}) : '';
   }
   function applyProduction() {
     productionApplied = $('production-preset').value;
-    for (const [id, value] of Object.entries(P.production(productionApplied, company))) $(id + '-production').value = value;
+    for (const [id, value] of Object.entries(P.production(productionApplied, company, guidance))) $(id + '-production').value = value;
     $('months').value = 12;
     renderPresetNotes(); renderResult();
   }
   function renderSnapshot() {
-    $('snapshot-status').textContent = latest ? t('prices.snapshot', {date:snapshot.fetched_at.slice(0, 10), period:period(D.history.at(-1).year)}) : t('prices.missing');
+    const pricePeriod = D.priceReport?.year || D.history.at(-1).year;
+    $('snapshot-status').textContent = latest ? t('prices.snapshot', {date:snapshot.fetched_at?.slice(0, 10), period:period(pricePeriod)}) : t('prices.missing');
     $('fx-note').textContent = Number.isFinite(fx) && fx > 0 ? t('prices.fx', {rate:fmt(fx, 6), date:snapshot.fx.as_of}) : t('prices.fxMissing');
     $('snapshot-rows').replaceChildren();
     $('snapshot-details').hidden = !latest;
@@ -143,7 +163,8 @@
       const tr = row([t(id), '', date, fmt(value, 4) + ' ' + t('unit.' + units[id])]);
       const link = document.createElement('a'); link.target = '_blank'; link.rel = 'noopener noreferrer';
       link.href = quote ? quote.source_url : report.url;
-      link.textContent = quote ? `${quote.contract} · ${fmt(quote.price, 4)} ${t('unit.' + quote.unit)}` : t('cmoc.realized');
+      if (company === 'cnooc') link.textContent = fmt(report[id]) + ' ' + t('unit.' + P.priceUnits[id][1]);
+      else link.textContent = quote ? `${quote.contract} · ${fmt(quote.price, 4)} ${t('unit.' + quote.unit)}` : t('cmoc.realized');
       tr.children[1].append(link); $('snapshot-rows').append(tr);
     });
     $('fx-source').href = snapshot.fx.source_url;
@@ -152,6 +173,11 @@
   function applyLatest() {
     if (!latest) return;
     latest.forEach(v => setPrice(v.id, v.price));
+    if (company === 'cnooc') {
+      marketApplied = {report: D.priceReport, fx: snapshot.fx};
+      renderResult();
+      return;
+    }
     const quoted = latest.filter(entry => entry.quote);
     const quotes = quoted.map(entry => entry.quote);
     const vat = Object.fromEntries(quoted.map(entry => [entry.id, entry.vat]));
@@ -226,20 +252,21 @@
   $('download').addEventListener('click', () => {
     if (!valid) return;
     const scenario = {
-      company, modelVersion: company === 'cmoc' ? 4 : 3, quantityBasis: 'sales', sourceSha256: D.source_sha256,
+      company, modelVersion: {zijin: 3, cmoc: 4, cnooc: 1}[company], quantityBasis: 'sales', sourceSha256: D.source_sha256,
       baseline: base, fullPreset: base.year, lastProductionPreset: productionApplied,
-      productionSource: productionApplied ? P.guidance[company].source : null,
+      productionSource: productionApplied ? guidance.source : null,
+      ...(company === 'cnooc' && productionApplied ? {productionAssumptions: guidance} : {}),
       lastMarketApplication: marketApplied, units: D.unit, displayPriceUnits: {...units},
       exchangeRate: snapshot?.fx || null, input, result: current, historicalAnnualMetrics: stats,
     };
-    const name = company === 'zijin' ? 'company-profit-scenario.json' : 'cmoc-profit-scenario.json';
+    const name = (company === 'zijin' ? 'company' : company) + '-profit-scenario.json';
     download(name, JSON.stringify(scenario, null, 2), 'application/json');
   });
   $('download-backtest').addEventListener('click', () => {
     const header = ['period','baseline','estimated_parent_CNY_100m','actual_parent_CNY_100m','signed_error_pct','role','quantity_basis','inputs_json'];
     const escape = value => '"' + String(value).replaceAll('"', '""') + '"';
     const rows = annual.map(r => [r.year,r.base,r.predicted,r.actual,r.error,'annual','reported_sales',JSON.stringify(r.input)]);
-    download(company === 'zijin' ? 'company-profit-backtest.csv' : 'cmoc-profit-backtest.csv', '\uFEFF' + [header,...rows].map(r => r.map(escape).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+    download((company === 'zijin' ? 'company' : company) + '-profit-backtest.csv', '\uFEFF' + [header,...rows].map(r => r.map(escape).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
   });
   function capture() {
     const drafts = Object.fromEntries([...$('inputs').querySelectorAll('input')].map(el => [el.id, el.value]));
@@ -263,25 +290,37 @@
       option.textContent = option.dataset.i18n ? t(prefix + value) : value; return option;
     }));
   }
+  function latestPrices() {
+    if (company === 'cnooc') {
+      if (!(Number.isFinite(fx) && fx > 0)) return null;
+      return ids.map(id => ({
+        id, price: P.toBasePrice(id, D.priceReport[id], P.priceUnits[id][1], fx), report: D.priceReport,
+      }));
+    }
+    try {
+      const quotes = P.snapshotPrices(snapshot).map((entry, i) => ({...entry, quote: snapshot.quotes[i]}));
+      const recent = D.history.at(-1);
+      return ids.map(id => quotes.find(q => q.id === id) || {
+        id, price: recent.metals.find(m => m.id === id).price, report: {year:recent.year, url:recent.url},
+      });
+    } catch (_) { return null; }
+  }
   function selectCompany(next) {
     if (next === company) return;
     if (company) saved[company] = capture();
     company = next;
     D = histories[company];
+    guidance = D.guidance || P.guidance[company];
     ids = M.companyProducts[company];
     annual = M.annualBacktests(D.history, company);
     stats = M.metrics(annual);
     units = Object.fromEntries(ids.map(id => [id, P.priceUnits[id][0]]));
     priceValues = {};
-    latest = null;
-    try {
-      const quotes = P.snapshotPrices(snapshot).map((entry, i) => ({...entry, quote: snapshot.quotes[i]}));
-      const recent = D.history.at(-1);
-      latest = ids.map(id => quotes.find(q => q.id === id) || {
-        id, price: recent.metals.find(m => m.id === id).price, report: {year:recent.year, url:recent.url},
-      });
-    } catch (_) { /* The historical presets remain usable without a market snapshot. */ }
-    $('ticker').textContent = company === 'zijin' ? '601899.SH · 02899.HK' : '603993.SH · 03993.HK';
+    latest = latestPrices();
+    if (company === 'cnooc' && latest) {
+      for (const id of ids) units[id] = P.priceUnits[id][1];
+    }
+    $('ticker').textContent = {zijin: '601899.SH · 02899.HK', cmoc: '603993.SH · 03993.HK', cnooc: '600938.SH · 00883.HK'}[company];
     $('company-panel').setAttribute('aria-labelledby', 'company-' + company);
     tabs.forEach(tab => {
       const active = tab.id === 'company-' + company;
@@ -289,7 +328,7 @@
     });
     localized.forEach(([el, key]) => { el.dataset.i18n = keyFor(key); });
     options('base', D.history.filter(r => !r.grouped).map(r => r.year).reverse(), 'period.');
-    options('production-preset', Object.keys(P.guidance[company].plans), 'plan.');
+    options('production-preset', Object.keys(guidance.plans), 'plan.');
     if (saved[company]) restore(saved[company]);
     else { reset('forecast'); applyProduction(); applyLatest(); }
     renderHistory(); renderSnapshot(); i18n.apply();
@@ -301,10 +340,12 @@
     tab.addEventListener('keydown', e => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
-      const target = e.key === 'Home' ? tabs[0] : e.key === 'End' ? tabs.at(-1) : tabs.find(el => el !== tab);
-      if (!target.disabled) { target.focus(); target.click(); }
+      const enabled = tabs.filter(el => !el.disabled);
+      const index = enabled.indexOf(tab) + (e.key === 'ArrowLeft' ? -1 : 1);
+      const target = e.key === 'Home' ? enabled[0] : e.key === 'End' ? enabled.at(-1) : enabled[(index + enabled.length) % enabled.length];
+      target.focus(); target.click();
     });
   });
   i18n.onChange(() => { restore(capture()); renderHistory(); renderSnapshot(); });
-  selectCompany(histories.zijin ? 'zijin' : 'cmoc');
+  selectCompany(firstCompany);
 })();

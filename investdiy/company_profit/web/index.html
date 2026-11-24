@@ -18,6 +18,7 @@
   <div class="company-tabs" role="tablist" data-i18n-aria-label="company.tabs">
     <button id="company-zijin" type="button" role="tab" aria-selected="true" aria-controls="company-panel" data-i18n="company.zijin"></button>
     <button id="company-cmoc" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="company-panel" data-i18n="company.cmoc"></button>
+    <button id="company-cnooc" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="company-panel" data-i18n="company.cnooc"></button>
   </div>
   <div id="company-panel" role="tabpanel" aria-labelledby="company-zijin" tabindex="0">
   <section class="preset-grid" aria-label="Presets" data-i18n-aria-label="presets.title">
@@ -27,6 +28,7 @@
   </section>
   <div class="snapshot-info"><p id="snapshot-status" class="note" role="status"></p><details id="snapshot-details"><summary data-i18n="prices.details"></summary><p class="note" data-i18n="prices.note"></p><div class="tablebox"><table class="table"><thead><tr><th data-i18n="audit.metal"></th><th data-i18n="prices.quote"></th><th data-i18n="prices.time"></th><th data-i18n="prices.converted"></th></tr></thead><tbody id="snapshot-rows"></tbody></table></div><p><a id="fx-source" target="_blank" rel="noopener noreferrer"></a></p></details></div>
   <p class="note" id="baseline-note"></p>
+  <p class="note" id="cnooc-sources" hidden><a id="report-source" data-i18n="cnooc.reportSource" target="_blank" rel="noopener noreferrer"></a> <a id="cost-source" data-i18n="cnooc.costSource" target="_blank" rel="noopener noreferrer"></a> · <a id="guidance-source" data-i18n="cnooc.guidanceSource" target="_blank" rel="noopener noreferrer"></a></p>
   <p class="note" id="production-applied" role="status"></p>
   <form id="inputs" novalidate>
     <div class="workspace">
@@ -63,6 +65,7 @@
 <script src="presets.js"></script>
 <script src="data/history.js"></script>
 <script src="data/cmoc-history.js"></script>
+<script src="data/cnooc-history.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 # Company Earnings Forecast
 
-The calculator at `/company-profit/` estimates attributable profit for Zijin Mining and CMOC. Each company has its own reported production, realized prices, costs and historical backtests. Both tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
+The calculator at `/company-profit/` estimates attributable profit for Zijin Mining, CMOC and CNOOC Limited. Each company has its own reported production, realized prices, costs and historical backtests. All three tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
 
 A prominent bilingual notice above the page title states that estimates may be wrong, accuracy is not guaranteed, and users bear responsibility for their decisions. Its text and mounting logic are centralized in the shared `investdiy/web/static/site.js`; the page opts in with `data-site-disclaimer="profit-forecast"`.
 
-Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. Both models also work in the standalone HTML.
+Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. All three models also work in the standalone HTML.
 
 ## Build and run
 
@@ -17,7 +17,7 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python3 -m investdiy.server
 
 Use `--source /absolute/path/to/company/CLAUDE.md` to explicitly override the Zijin baseline with a research record containing `PROFIT_MODEL_DATA_START`. Both paths verify the profit attribution, tax, unit conversion and bridge reconciliations, then create ignored files under `investdiy/company_profit/data/out/`:
 
-- `history.json` contains both verified company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js` supplies the CMOC report inputs.
+- `history.json` contains all three verified company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js` and `cnooc-history.js` supply the other companies’ report inputs.
 - `market-status.csv`: collection time and each metal/FX observation date; `as_of` is the oldest observation date for homepage and publication freshness checks.
 - `company-profit.html`: a self-contained HTML file with inline CSS, JavaScript, translations and historical data. It works without a server or network connection.
 
@@ -58,6 +58,16 @@ The bridge scales other net pre-tax items by mining product revenue at the basel
 The model allocates group net profit up to the comparable baseline amount at the baseline parent share. Additional profit uses the change in attributable profit divided by the change in group net profit between the two most recent consecutive annual reports available at the baseline. The baseline share also applies to losses and substitutes for an unavailable or out-of-range incremental share. The FY 2024 test uses the baseline share because the 2022–2023 incremental share exceeds 100%. For FY 2025 the incremental share is 76.24%, versus 87.53% on baseline earnings. The FY 2025 minority-profit estimate is 37.59 against 36.89 reported. The revised total still contains offsetting errors.
 
 Scenario months scale the baseline group net profit to the modeled period. Applying annual guidance sets 12 months. Historical presets use their own duration, including the two 2026 interim reports. Those reports remain available for scenario reconciliation. Scenario exports include the two allocation rates and the baseline net profit per month.
+
+## CNOOC Limited
+
+The 2026 net production target is 780–800 million BOE. The default uses the midpoint of 790 million BOE. Guidance includes equity-accounted production, while consolidated sales exclude it. Each preset multiplies the target by H1 2026 sales of liquids (303.6 million barrels) or gas (492.3 bcf) divided by total net production (398.7 million BOE). Users can change either volume for a different sales mix or inventory assumption. [Company guidance](https://ltd.cnooc.com.cn/english/presscenter/pressreleases/2026/202608/t20260826_122439.html) · [H1 2026 report](https://static.cninfo.com.cn/finalpage/2026-08-27/1225513023.PDF)
+
+The startup price preset uses the company’s nine-month realized prices of USD 86.32/bbl and USD 8.13/Mcf. It converts at the saved ECB rate and supports editing in either currency. Historical presets and annual backtests use each product’s reported CNY sales revenue divided by its physical sales volume. This preserves actual CNY revenue independently of the scenario FX rate. [9M 2026 report](https://static.cninfo.com.cn/finalpage/2026-10-31/1225649273.PDF)
+
+The reports disclose a combined oil and gas cost of sales. The model divides it by reported million BOE sold, assigns one BOE per barrel of liquids, and allocates the remainder to gas. The two unit costs can be edited independently. Their historical allocation reconciles to consolidated oil and gas gross profit. In FY 2025, oil and gas sales of CNY 335,652 million less CNY 136,138 million in cost of sales give gross profit of CNY 199,514 million. FY 2020 and FY 2021 use the audited A-share cost disclosure alongside their annual reports. [FY 2025 report](https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF) · [FY 2020 report](https://www1.hkexnews.hk/listedco/listconews/sehk/2021/0408/2021040800121.pdf) · [FY 2021 report](https://www1.hkexnews.hk/listedco/listconews/sehk/2022/0412/2022041200025.pdf) · [FY 2020–2021 cost disclosure](https://static.cninfo.com.cn/finalpage/2022-04-20/1212978191.PDF)
+
+The bridge scales associate and joint venture income and signed noncontrolling earnings by scenario months. Other pre-tax items scale with oil and gas revenue at the baseline ratio. They include the net effects of trading, levies, expenses and impairments. Positive pre-tax profit uses the baseline effective tax rate. The forecast opens with H1 2026 financial parameters and annual guidance. The historical tests freeze financial parameters at the prior fiscal year and supply actual sales, prices and allocated costs from the target year. FY 2021–2025 MAPE is 5.20%, with the largest absolute error in FY 2021 at 11.48%. These figures measure model error conditional on realized inputs.
 
 ## Parameter presets and actuals
 
@@ -136,7 +146,7 @@ The incremental adjustment is **attributable, after-tax** and only includes cont
 
 ## Historical validation
 
-Both tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
+All three tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
 
 Configured thresholds: annual MAPE ≤15% and maximum annual absolute percentage error ≤25%. Signed error is `100 * (estimated / actual - 1)`; MAPE is the unweighted mean of absolute annual percentage errors.
 

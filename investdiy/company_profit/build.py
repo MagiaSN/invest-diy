@@ -9,7 +9,7 @@ import json
 import re
 from pathlib import Path
 
-from . import annual_history, cmoc
+from . import annual_history, cmoc, cnooc
 from .prices import fetch_snapshot
 from ..common import net
 
@@ -63,16 +63,20 @@ def validate_baseline(data: dict) -> None:
 
 def build(source: Path | None = None) -> Path:
     data = load_baseline(source)
+    data.pop("cnooc", None)
     data.pop("cmoc", None)
     data.pop("zangge", None)
     cmoc_data = cmoc.baseline()
     validate_baseline(cmoc_data)
+    cnooc_data = cnooc.baseline()
+    validate_baseline(cnooc_data)
     data["market"] = fetch_snapshot()
     out = PACKAGE / "data" / "out"
     out.mkdir(parents=True, exist_ok=True)
-    history_json = json.dumps({**data, "cmoc": cmoc_data}, ensure_ascii=False, indent=2) + "\n"
+    history_json = json.dumps({**data, "cmoc": cmoc_data, "cnooc": cnooc_data}, ensure_ascii=False, indent=2) + "\n"
     js = "window.CompanyProfitData = " + json.dumps(data, ensure_ascii=False) + ";\n"
     cmoc_js = "window.CmocProfitData = " + json.dumps(cmoc_data, ensure_ascii=False) + ";\n"
+    cnooc_js = "window.CnoocProfitData = " + json.dumps(cnooc_data, ensure_ascii=False) + ";\n"
     html = (PACKAGE / "web" / "index.html").read_text(encoding="utf-8")
 
     def asset(path: str) -> str:
@@ -80,6 +84,8 @@ def build(source: Path | None = None) -> Path:
             return js
         if path == "data/cmoc-history.js":
             return cmoc_js
+        if path == "data/cnooc-history.js":
+            return cnooc_js
         if path.startswith("/static/"):
             return (ROOT / "investdiy" / "web" / path.lstrip("/")).read_text(encoding="utf-8")
         return ((out / path[5:]) if path.startswith("data/") else (PACKAGE / "web" / path)).read_text(encoding="utf-8")
@@ -98,7 +104,7 @@ def build(source: Path | None = None) -> Path:
     writer.writeheader()
     writer.writerow(status)
     for name, contents in (("history.json", history_json), ("history.js", js), ("cmoc-history.js", cmoc_js),
-                           (destination.name, html), ("market-status.csv", buffer.getvalue())):
+                           ("cnooc-history.js", cnooc_js), (destination.name, html), ("market-status.csv", buffer.getvalue())):
         temporary = out / (name + ".tmp")
         temporary.write_text(contents, encoding="utf-8")
         temporary.replace(out / name)

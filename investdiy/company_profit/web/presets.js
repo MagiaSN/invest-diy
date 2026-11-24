@@ -17,9 +17,14 @@
     zijin: {plans, source},
     cmoc: {plans: cmocPlans, source: 'https://static.cninfo.com.cn/finalpage/2026-04-02/1225072765.PDF'},
   };
-  function production(id, company = 'zijin') {
-    const plans = guidance[company].plans;
+  function production(id, company = 'zijin', reportGuidance = guidance[company]) {
+    const plans = reportGuidance.plans;
     if (!Object.hasOwn(plans, id)) throw new Error('Unknown production preset');
+    if (company === 'cnooc') {
+      const scale = plans[id] / reportGuidance.netProduction;
+      return {oil: Number((reportGuidance.oilSold * scale).toFixed(4)),
+        gas: Number((reportGuidance.gasSold * scale).toFixed(4))};
+    }
     return {...plans[id]};
   }
   function realizedPrice(quote, vat, realization) {
@@ -32,7 +37,8 @@
     if (value > 1e7) throw new Error('Price out of range');
     return value;
   }
-  const priceUnits = {gold: ['CNY/g', 'USD/oz'], copper: ['CNY/t', 'USD/t', 'USD/lb'], zinc: ['CNY/t'], silver: ['CNY/g'],
+  const priceUnits = {oil: ['CNY/bbl', 'USD/bbl'], gas: ['CNY/Mcf', 'USD/Mcf'],
+    gold: ['CNY/g', 'USD/oz'], copper: ['CNY/t', 'USD/t', 'USD/lb'], zinc: ['CNY/t'], silver: ['CNY/g'],
     cobalt: ['CNY/t'], molybdenum: ['CNY/t'], tungsten: ['CNY/t'], niobium: ['CNY/t'], phosphate: ['CNY/t']};
   function priceFactor(id, unit, fx) {
     if (!priceUnits[id]?.includes(unit)) throw new Error('Unknown price unit');

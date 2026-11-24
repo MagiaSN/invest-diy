@@ -32,7 +32,7 @@ test('interim annualization scales flows but leaves prices, costs, tax and attri
 });
 
 test('annual tests consume reported sales, price and cost and freeze the rest of the model', () => {
-  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc], ['cnooc', D.cnooc]]) {
     const history = clone(data.history), target = history.find(r => r.year === '2025');
     const predict = () => M.backtest(history, target.year, company);
     const before = predict();
@@ -194,7 +194,7 @@ test('CMOC separates mining revenue exposure from unit margins and allocates onl
 });
 
 test('five-year windows roll on a new annual report and exclude interim reports', () => {
-  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc], ['cnooc', D.cnooc]]) {
     const history = clone(data.history);
     const years = () => M.annualBacktests(history, company).map(r => r.year);
     assert.deepEqual(years(), ['2021', '2022', '2023', '2024', '2025']);
@@ -244,5 +244,38 @@ test('CMOC forecast tax pools only the last three completed fiscal years at the 
   const base = history.at(-1);
   for (const taxWindow of [undefined, {pretax:0, expense:1}, {pretax:100, expense:70}]) {
     close(M.defaults({...base, taxWindow}, false, history, 'forecast').tax, base.tax * 100);
+  }
+});
+
+test('CNOOC cost allocation, native sales units and signed minority earnings reconcile', () => {
+  for (const base of D.cnooc.history) {
+    const result = M.estimate(M.defaults(base, false), 'cnooc');
+    close(result.parent, base.actual);
+    close(result.gp, base.gp);
+    close(result.nci, base.nci);
+  }
+  const fy = D.cnooc.history.find(r => r.year === '2025');
+  const input = M.defaults(fy, false);
+  const [oil, gas] = M.estimate(input, 'cnooc').metals;
+  close(oil.production, 589.2); close(gas.production, 984);
+  close(oil.revenue, 2797.86); close(gas.revenue, 558.66);
+  close(oil.cost, 136138 / 757.6);
+  close(oil.totalCost + gas.totalCost, 1361.38);
+  for (const id of ['oil', 'gas']) {
+    const shock = clone(input);
+    shock.metals.find(m => m.id === id).price *= 1.1;
+    assert.ok(M.estimate(shock, 'cnooc').parent > fy.actual);
+  }
+  const rows = M.annualBacktests(D.cnooc.history, 'cnooc');
+  close(M.metrics(rows).mape, 5.20, .005);
+  close(M.metrics(rows).maxError, 11.48, .005);
+});
+
+test('CNOOC net production guidance scales consolidated oil and gas sales separately', () => {
+  const guidance = D.cnooc.guidance;
+  for (const [id, total] of Object.entries({'2026-low':780, '2026-mid':790, '2026-high':800})) {
+    const plan = P.production(id, 'cnooc', guidance);
+    close(plan.oil, 303.6 / 398.7 * total, .00005);
+    close(plan.gas, 492.3 / 398.7 * total, .00005);
   }
 });

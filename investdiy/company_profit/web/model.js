@@ -3,6 +3,8 @@
   'use strict';
   const ids = ['gold', 'copper', 'zinc', 'silver'];
   const products = {
+    oil: {symbol: 'bbl', volumeUnit: 'millionBbl', salesScale: 1e6},
+    gas: {symbol: 'Mcf', volumeUnit: 'bcf', salesScale: 1e6},
     gold: {symbol: 'Au', volumeUnit: 'tonne', salesScale: 1000, priceScale: 1000},
     silver: {symbol: 'Ag', volumeUnit: 'tonne', salesScale: 1000, priceScale: 1000},
     copper: {symbol: 'Cu', volumeUnit: '10kt', salesScale: 10000},
@@ -16,7 +18,7 @@
   // Early CMOC reports publish revenue and costs for these three product groups.
   const cmocGroups = ['copperCobalt', 'molyTungsten', 'niobiumPhosphate'];
   for (const id of cmocGroups) products[id] = {volumeUnit: '10kt', salesScale: 10000};
-  const companyProducts = {zijin: ids, cmoc: ['copper', 'cobalt', 'molybdenum', 'tungsten', 'niobium', 'gold', 'phosphate']};
+  const companyProducts = {zijin: ids, cmoc: ['copper', 'cobalt', 'molybdenum', 'tungsten', 'niobium', 'gold', 'phosphate'], cnooc: ['oil', 'gas']};
   function number(value, min, max) {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error('invalid');
     return value;
@@ -28,9 +30,17 @@
     const scale = annualize ? 12 / base.months : 1;
     const input = {
       metals: base.metals.map(reportedSalesInput),
-      tax: base.tax * 100, share: base.share * 100, adjustment: 0, months: annualize ? 12 : base.months,
+      tax: base.tax * 100, adjustment: 0, months: annualize ? 12 : base.months,
     };
     if (annualize) input.metals.forEach(m => { m.production *= scale; });
+    if (base.company === 'cnooc') {
+      const revenue = base.metals.reduce((sum, m) => sum + m.sales * m.price / 1e8, 0);
+      input.other = base.other / revenue * 100;
+      input.associateMonthly = base.associate / base.months;
+      input.nciMonthly = base.nci / base.months;
+      return input;
+    }
+    input.share = base.share * 100;
     if (base.grouped || base.metals.some(m => m.id === 'cobalt')) {
       input.associateMonthly = base.associate / base.months;
       if (taxBasis === 'forecast' && base.taxWindow?.pretax > 0) {
@@ -70,7 +80,7 @@
     // Older exported scenarios encode both lines as percentages.
     const months = input.months === undefined ? 12 : number(input.months, 1, 12);
     let associate;
-    if (company === 'cmoc' && input.associateMonthly !== undefined) {
+    if (company === 'cnooc' || (company === 'cmoc' && input.associateMonthly !== undefined)) {
       associate = months * number(input.associateMonthly, -10000, 10000);
     } else {
       let driver = grouped ? metals[0].gp : metals.find(m => m.id === 'copper').gp;
@@ -82,19 +92,23 @@
     if (company === 'zijin' && input.otherMonthly !== undefined) {
       other = months * number(input.otherMonthly, -10000, 10000);
     } else {
-      const driver = cmocBridge ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
+      const driver = cmocBridge || company === 'cnooc' ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
       other = driver * number(input.other, -200, 200) / 100;
     }
     const pretax = gp + associate + other;
     // No automatic recognition of a tax asset in a loss scenario.
     const tax = Math.max(0, pretax) * number(input.tax, 0, 60) / 100;
     const net = pretax - tax;
-    const share = number(input.share, 0, 100) / 100;
-    let coreParent = net * share;
+    let coreParent;
+    if (company === 'cnooc') {
+      coreParent = net - months * number(input.nciMonthly, -10000, 10000);
+    } else {
+      coreParent = net * number(input.share, 0, 100) / 100;
+    }
     if (cmocBridge) {
       const baseNet = number(input.baseMonthlyNet, 0, Infinity) * months;
       const marginal = number(input.marginalShare, 0, 100) / 100;
-      coreParent += Math.max(net - baseNet, 0) * (marginal - share);
+      coreParent += Math.max(net - baseNet, 0) * (marginal - input.share / 100);
     }
     const adjustment = number(input.adjustment, -10000, 10000);
     const parent = coreParent + adjustment;
