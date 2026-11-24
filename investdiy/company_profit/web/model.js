@@ -26,7 +26,7 @@
   function reportedSalesInput(m) {
     return {id: m.id, production: m.sales / products[m.id].salesScale, price: m.price, cost: m.cost};
   }
-  function defaults(base, annualize = true, history = [], taxBasis = 'reported') {
+  function defaults(base, annualize = true, history = [], basis = 'reported') {
     const scale = annualize ? 12 / base.months : 1;
     const input = {
       metals: base.metals.map(reportedSalesInput),
@@ -37,6 +37,11 @@
       input.tax = base.operatingTax * 100;
       input.otherMonthly = base.other / base.months;
       input.nciMonthly = base.nci / base.months;
+      if (base.potashResourceTaxPct !== undefined) {
+        const potash = base.metals.find(m => m.id === 'potash');
+        input.potashResourceTaxPct = base.potashResourceTaxPct;
+        input.baseMonthlyPotashRevenue = potash.sales * potash.price / 1e8 / base.months;
+      }
       if (base.julongSales !== undefined) {
         input.julongSales = base.julongSales * scale;
         input.julongStake = base.julongStake;
@@ -45,14 +50,19 @@
         input.julongOtherPerTonne = base.julongOtherPerTonne;
         input.julongTaxPct = base.julongTaxPct;
       } else {
-        input.julongMonthly = base.associate / base.months;
+        let earnings = base.associate;
+        if (basis === 'forecast' && base.months === 12 && base.julongStake > 0) {
+          const previous = history.find(r => r.year === String(Number(base.year) - 1) && r.months === 12);
+          if (previous?.julongStake === base.julongStake) earnings += base.associate - previous.associate;
+        }
+        input.julongMonthly = earnings / base.months;
       }
       return input;
     }
     input.share = base.share * 100;
     if (base.grouped || base.metals.some(m => m.id === 'cobalt')) {
       input.associateMonthly = base.associate / base.months;
-      if (taxBasis === 'forecast' && base.taxWindow?.pretax > 0) {
+      if (basis === 'forecast' && base.taxWindow?.pretax > 0) {
         const rate = 100 * base.taxWindow.expense / base.taxWindow.pretax;
         if (rate >= 0 && rate <= 60) input.tax = rate;
       }
@@ -118,6 +128,12 @@
     } else {
       const driver = cmocBridge ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
       other = driver * number(input.other, -200, 200) / 100;
+    }
+    if (company === 'zangge' && input.potashResourceTaxPct !== undefined) {
+      // The monthly residual already includes tax on the baseline sales.
+      const baselineRevenue = months * number(input.baseMonthlyPotashRevenue, 0, Infinity);
+      const delta = metals.find(m => m.id === 'potash').revenue - baselineRevenue;
+      other -= delta * number(input.potashResourceTaxPct, 0, 100) / 100;
     }
     const pretax = gp + associate + other;
     // No automatic recognition of a tax asset in a loss scenario.

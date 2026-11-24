@@ -256,7 +256,44 @@ test('Zangge reconciles original statements including signed NCI and Julong equi
   const rows = M.annualBacktests(D.zangge.history, 'zangge');
   assert.deepEqual(rows.map(r => r.year), ['2021','2022','2023','2024','2025']);
   close(rows[1].actual, 56.5487286071); // Original FY 2022, before the comparative restatement.
-  close(rows[4].input.julongMonthly * 12, 19.2768358559);
+  for (const r of rows.slice(-3)) assert.ok(Math.abs(r.error) < 10, r.year);
+  rows.forEach((r, i) => close(r.error, [2.44, -9.99, -.35, -4.85, -3.87][i], .005));
+});
+
+test('early Julong forecasts use only comparable preceding annual income at the same stake', () => {
+  const history = clone(D.zangge.history);
+  const prior = history.find(r => r.year === '2023'), base = history.find(r => r.year === '2024');
+  const forecast = () => M.backtest(history, '2025', 'zangge').input.julongMonthly * 12;
+  const annualIncome = base.associate + (base.associate - prior.associate);
+  close(forecast(), annualIncome);
+  for (const future of history.filter(r => r.year > '2024')) {
+    Object.assign(future, {associate: 9000, julongStake: 100, potashResourceTaxPct: 99, operatingTax: .57});
+  }
+  close(forecast(), annualIncome);
+  prior.associate += 1;
+  close(forecast(), annualIncome - 1);
+  prior.julongStake = 25;
+  close(forecast(), base.associate);
+  close(M.defaults(base, false, [], 'forecast').julongMonthly * 12, base.associate);
+  close(M.defaults(base, false, history).julongMonthly * 12, base.associate);
+});
+
+test('Zangge changes resource tax only on incremental potash revenue and preserves legacy inputs', () => {
+  const h = D.zangge.history, b = h.at(-1);
+  const input = M.defaults(b, false), before = M.estimate(input, 'zangge');
+  const potash = input.metals.find(m => m.id === 'potash');
+  const increase = 100 * b.metals[0].sales / 1e8;
+  potash.price += 100;
+  const changed = M.estimate(input, 'zangge');
+  close(changed.other - before.other, -.08 * increase);
+  close(changed.parent - before.parent, increase * .92 * (1 - b.operatingTax));
+  potash.cost += 100;
+  input.metals[1].price += 100;
+  close(M.estimate(input, 'zangge').other, changed.other);
+  delete input.potashResourceTaxPct;
+  delete input.baseMonthlyPotashRevenue;
+  close(M.estimate(input, 'zangge').other, before.other);
+  close(M.estimate(M.defaults(b, true), 'zangge').parent, b.actual * 12 / b.months);
 });
 
 test('Julong ownership applies once to mine earnings, outside product GP and operating tax', () => {

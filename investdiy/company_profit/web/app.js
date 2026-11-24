@@ -100,6 +100,16 @@
     if (company === 'zangge') {
       const note = $('julong-note');
       note.textContent = t('julong.runRate');
+      const forecast = $('julong-forecast');
+      forecast.hidden = base.julongSales !== undefined;
+      if (!forecast.hidden) {
+        const monthly = M.defaults(base, false, D.history, 'forecast').julongMonthly;
+        forecast.textContent = t('julong.applyForecast', {value: fmt(monthly)});
+        forecast.onclick = () => {
+          $('julongMonthly').value = Number(monthly.toFixed(4));
+          renderResult();
+        };
+      }
       if (base.julongSales !== undefined) {
         const copperPrice = priceField({id: 'copper', price: input.julongPrice});
         $('julongCost').closest('label').before(copperPrice);
@@ -123,6 +133,10 @@
       result.julongPrice = readPrice('copper');
       result.julongTaxPct = base.julongTaxPct;
       result.julongOtherPerTonne = base.julongOtherPerTonne;
+    }
+    if (reference.potashResourceTaxPct !== undefined) {
+      result.potashResourceTaxPct = reference.potashResourceTaxPct;
+      result.baseMonthlyPotashRevenue = reference.baseMonthlyPotashRevenue;
     }
     if (company === 'cmoc') result.baseMonthlyNet = base.net / base.months;
     return result;
@@ -278,7 +292,7 @@
   $('download').addEventListener('click', () => {
     if (!valid) return;
     const scenario = {
-      company, modelVersion: ({zijin: 3, cmoc: 4, zangge: 2})[company], quantityBasis: 'sales', sourceSha256: D.source_sha256,
+      company, modelVersion: ({zijin: 3, cmoc: 4, zangge: 3})[company], quantityBasis: 'sales', sourceSha256: D.source_sha256,
       baseline: base, fullPreset: base.year, lastProductionPreset: productionApplied,
       productionSource: productionApplied ? P.guidance[company].source : null,
       lastMarketApplication: marketApplied, units: D.unit, displayPriceUnits: Object.fromEntries(priceIds().map(id => [id, units[id]])),
