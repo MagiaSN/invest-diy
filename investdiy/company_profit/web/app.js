@@ -1,9 +1,9 @@
 (function () {
   'use strict';
   const M = window.CompanyProfitModel, P = window.CompanyProfitPresets, data = window.CompanyProfitData;
-  const histories = {zijin: data, cmoc: window.CmocProfitData, zangge: window.ZanggeProfitData};
+  const histories = {zijin: data, cmoc: window.CmocProfitData};
   const $ = id => document.getElementById(id);
-  if (!Object.values(histories).some(Boolean)) { $('error').hidden = false; $('error').textContent = i18n.t('common.failed'); $('results').hidden = true; $('download').disabled = true; return; }
+  if (!histories.zijin && !histories.cmoc) { $('error').hidden = false; $('error').textContent = i18n.t('common.failed'); $('results').hidden = true; $('download').disabled = true; return; }
   const snapshot = data?.market, fx = snapshot?.fx?.cny_per_usd;
   const saved = {};
   const tabs = [...document.querySelectorAll('[role="tab"]')];
@@ -16,22 +16,9 @@
   const period = y => i18n.has('period.' + y) ? t('period.' + y) : y;
   const commonFields = [['tax', 0, 60], ['share', 0, 100], ['months', 1, 12], ['adjustment', -10000, 10000]];
   const fields = {
-    zangge: [['tax', 0, 60], ['months', 1, 12], ['otherMonthly', -10000, 10000],
-      ['nciMonthly', -10000, 10000], ['adjustment', -10000, 10000]],
     zijin: [...commonFields, ['associate', -100, 200], ['otherMonthly', -10000, 10000]],
     cmoc: [...commonFields, ['associateMonthly', -10000, 10000], ['other', -200, 200], ['marginalShare', 0, 100]],
   };
-  function julongFields() {
-    if (company !== 'zangge') return [];
-    return base.julongSales === undefined ? [['julongMonthly', -10000, 10000]]
-      : [['julongSales', 0, 1e6], ['julongCost', 0, 1e7], ['julongStake', 0, 100]];
-  }
-  function priceIds() {
-    return company === 'zangge' && base.julongSales !== undefined ? [...ids, 'copper'] : ids;
-  }
-  function applicablePrices() {
-    return latest.filter(entry => priceIds().includes(entry.id));
-  }
   const priceDigits = id => units[id] === 'USD/lb' ? 6 : 4;
   function priceLimit(id) {
     const scale = 10 ** priceDigits(id);
@@ -95,32 +82,6 @@
       el.append(field(m.id + '-production', `${t('production')} (${qu})`, m.production, 0, 1e6), priceField(m), field(m.id + '-cost', `${t('cost')} (${pu})`, m.cost, 0, 1e7));
       $('metal-inputs').append(el); setPrice(m.id, m.price);
     });
-    $('julong').hidden = company !== 'zangge';
-    $('julong-inputs').replaceChildren(...julongFields().map(([key, min, max]) => field(key, t(key), input[key], min, max)));
-    if (company === 'zangge') {
-      const note = $('julong-note');
-      note.textContent = t('julong.runRate');
-      const forecast = $('julong-forecast');
-      forecast.hidden = base.julongSales !== undefined;
-      if (!forecast.hidden) {
-        const monthly = M.defaults(base, false, D.history, 'forecast').julongMonthly;
-        forecast.textContent = t('julong.applyForecast', {value: fmt(monthly)});
-        forecast.onclick = () => {
-          $('julongMonthly').value = Number(monthly.toFixed(4));
-          renderResult();
-        };
-      }
-      if (base.julongSales !== undefined) {
-        const copperPrice = priceField({id: 'copper', price: input.julongPrice});
-        $('julongCost').closest('label').before(copperPrice);
-        setPrice('copper', input.julongPrice);
-        note.textContent = t('julong.perTonne', {period: period(base.year), other: fmt(base.julongOtherPerTonne), tax: base.julongTaxPct});
-        const source = document.createElement('a');
-        source.href = base.copperProxyUrl; source.target = '_blank'; source.rel = 'noopener noreferrer';
-        source.textContent = t('julong.proxySource');
-        note.append(' ', source);
-      }
-    }
     fields[company].forEach(([key, min, max]) => $('advanced-inputs').append(field(key, t(key), input[key], min, max)));
   }
   function read() {
@@ -128,16 +89,7 @@
     $('inputs').querySelectorAll('input').forEach(el => { const bad = el.value.trim() === '' || !el.validity.valid || !Number.isFinite(el.valueAsNumber); el.setAttribute('aria-invalid', String(bad)); if (bad) ok = false; });
     if (!ok) throw new Error('invalid');
     const result = {metals: ids.map(id => ({id, production: $(id + '-production').valueAsNumber, price: readPrice(id), cost: $(id + '-cost').valueAsNumber}))};
-    [...fields[company], ...julongFields()].forEach(([k]) => { result[k] = $(k).valueAsNumber; });
-    if (company === 'zangge' && base.julongSales !== undefined) {
-      result.julongPrice = readPrice('copper');
-      result.julongTaxPct = base.julongTaxPct;
-      result.julongOtherPerTonne = base.julongOtherPerTonne;
-    }
-    if (reference.potashResourceTaxPct !== undefined) {
-      result.potashResourceTaxPct = reference.potashResourceTaxPct;
-      result.baseMonthlyPotashRevenue = reference.baseMonthlyPotashRevenue;
-    }
+    fields[company].forEach(([k]) => { result[k] = $(k).valueAsNumber; });
     if (company === 'cmoc') result.baseMonthlyNet = base.net / base.months;
     return result;
   }
@@ -151,21 +103,13 @@
     for (const id of ['parent', 'net', 'gross']) $(id).textContent = valid ? fmt(current[id === 'gross' ? 'gp' : id]) : '—';
     $('apply-price-preset').disabled = !latest;
     $('price-preset').disabled = !latest;
-    $('bull').disabled = !valid || priceIds().some(id => readPrice(id) * 1.1 > 1e7);
+    $('bull').disabled = !valid || input.metals.some(m => m.price * 1.1 > 1e7);
     $('bear').disabled = !valid;
     if (!valid) { $('band').textContent = ''; $('scenario-warning').textContent = ''; return; }
-    const productChanged = input.metals.some((m, i) => {
-      const ref = reference.metals[i];
-      return m.production < ref.production * .7 || m.production > ref.production * 1.3 ||
-        m.price < ref.price * .5 || m.price > ref.price * 1.5 || m.cost < ref.cost * .8 || m.cost > ref.cost * 1.2;
-    });
-    const julongChanged = company === 'zangge' &&
-      Math.abs(current.associate - base.associate) > Math.max(1, Math.abs(base.associate) * .3);
-    const financialChanged = fields[company].some(([k]) => {
+    const extreme = input.metals.some((m, i) => m.production < reference.metals[i].production * .7 || m.production > reference.metals[i].production * 1.3 || m.price < reference.metals[i].price * .5 || m.price > reference.metals[i].price * 1.5 || m.cost < reference.metals[i].cost * .8 || m.cost > reference.metals[i].cost * 1.2) || current.gp <= base.gp * .2 || input.adjustment !== 0 || fields[company].some(([k]) => {
       if (k.endsWith('Monthly')) return Math.abs(input[k] - reference[k]) > Math.max(1, Math.abs(reference[k]) * .2);
       return k !== 'months' && Math.abs(input[k] - reference[k]) > 5;
     });
-    const extreme = productChanged || julongChanged || financialChanged || current.gp <= base.gp * .2 || input.adjustment !== 0;
     $('scenario-warning').textContent = t(extreme ? 'scenario.extreme' : 'scenario.normal');
     const span = Math.abs(current.parent) * stats.maxError / 100;
     $('band').textContent = extreme ? '' : t('band', {lo: fmt(current.parent - span), hi: fmt(current.parent + span), error: fmt(stats.maxError, 1)});
@@ -182,45 +126,38 @@
   }
   function applyProduction() {
     productionApplied = $('production-preset').value;
-    for (const [id, value] of Object.entries(P.production(productionApplied, company))) {
-      const el = id === 'julongSales' ? $(id) : $(id + '-production');
-      if (el) el.value = value;
-    }
+    for (const [id, value] of Object.entries(P.production(productionApplied, company))) $(id + '-production').value = value;
     $('months').value = 12;
     renderPresetNotes(); renderResult();
   }
   function renderSnapshot() {
-    $('snapshot-status').textContent = latest ? t('prices.snapshot', {date:snapshot?.fetched_at?.slice(0, 10), period:period(D.history.at(-1).year)}) : t('prices.missing');
-    $('fx-note').hidden = $('fx-source').hidden = company === 'zangge' && base.julongSales === undefined;
+    $('snapshot-status').textContent = latest ? t('prices.snapshot', {date:snapshot.fetched_at.slice(0, 10), period:period(D.history.at(-1).year)}) : t('prices.missing');
     $('fx-note').textContent = Number.isFinite(fx) && fx > 0 ? t('prices.fx', {rate:fmt(fx, 6), date:snapshot.fx.as_of}) : t('prices.fxMissing');
     $('snapshot-rows').replaceChildren();
     $('snapshot-details').hidden = !latest;
     if (!latest) return;
-    applicablePrices().forEach(entry => {
+    latest.forEach(entry => {
       const {id, quote, report, price} = entry;
       const date = quote ? quote.quoted_at.replace('T', ' ').slice(0, 19) : period(report.year);
       const value = P.fromBasePrice(id, price, units[id], fx);
       const tr = row([t(id), '', date, fmt(value, 4) + ' ' + t('unit.' + units[id])]);
       const link = document.createElement('a'); link.target = '_blank'; link.rel = 'noopener noreferrer';
       link.href = quote ? quote.source_url : report.url;
-      link.textContent = quote ? `${quote.contract} · ${fmt(quote.price, 4)} ${t('unit.' + quote.unit)}` : t(report.label || 'prices.realized');
+      link.textContent = quote ? `${quote.contract} · ${fmt(quote.price, 4)} ${t('unit.' + quote.unit)}` : t('cmoc.realized');
       tr.children[1].append(link); $('snapshot-rows').append(tr);
     });
-    if (snapshot?.fx) {
-      $('fx-source').href = snapshot.fx.source_url;
-      $('fx-source').textContent = t('prices.fxSource', {date:snapshot.fx.as_of});
-    }
+    $('fx-source').href = snapshot.fx.source_url;
+    $('fx-source').textContent = t('prices.fxSource', {date:snapshot.fx.as_of});
   }
   function applyLatest() {
     if (!latest) return;
-    const applied = applicablePrices();
-    applied.forEach(v => setPrice(v.id, v.price));
-    const quoted = applied.filter(entry => entry.quote);
+    latest.forEach(v => setPrice(v.id, v.price));
+    const quoted = latest.filter(entry => entry.quote);
     const quotes = quoted.map(entry => entry.quote);
     const vat = Object.fromEntries(quoted.map(entry => [entry.id, entry.vat]));
     marketApplied = {
-      snapshot: quotes.length ? {...snapshot, quotes, conversion: {...snapshot.conversion, vat_pct: vat}} : null,
-      conversion: applied,
+      snapshot: {...snapshot, quotes, conversion: {...snapshot.conversion, vat_pct: vat}},
+      conversion: latest,
     };
     renderResult();
   }
@@ -258,14 +195,14 @@
       r.input.metals.forEach(m => $('audit').append(row([period(r.year), t(m.id), fmt(m.production, 4), fmt(m.price), fmt(m.cost)])));
     });
     $('sources').replaceChildren();
-    D.history.forEach(r => { const li = document.createElement('li'), a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = company !== 'zijin' ? t('report', {period:period(r.year)}) : (i18n.has('source.' + r.year) ? t('source.' + r.year) : period(r.year)); li.append(a); $('sources').append(li); });
+    D.history.forEach(r => { const li = document.createElement('li'), a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = company === 'cmoc' ? t('cmoc.report', {period:period(r.year)}) : (i18n.has('source.' + r.year) ? t('source.' + r.year) : period(r.year)); li.append(a); $('sources').append(li); });
     $('version').textContent = t('version', {date:D.verified, hash:D.source_sha256.slice(0, 16)});
   }
   function reset(taxBasis = 'reported') {
     base = D.history.find(r => r.year === $('base').value);
     productionApplied = null; marketApplied = null;
     reference = M.defaults(base, false, D.history, taxBasis);
-    input = reference; buildInputs(); renderResult(); renderPresetNotes(); renderSnapshot();
+    input = reference; buildInputs(); renderResult(); renderPresetNotes();
   }
   function download(name, contents, mime) {
     const blob = new Blob([contents], {type:mime}), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -284,7 +221,7 @@
   $('apply-price-preset').addEventListener('click', applyLatest);
   [['bull', 1.1], ['bear', .9]].forEach(([id, factor]) => $(id).addEventListener('click', () => {
     if (!valid) return;
-    const prices = priceIds().map(id => [id, readPrice(id) * factor]);
+    const prices = ids.map(id => [id, readPrice(id) * factor]);
     if (prices.some(([, value]) => value > 1e7)) return;
     prices.forEach(([id, value]) => setPrice(id, value));
     renderResult();
@@ -292,20 +229,20 @@
   $('download').addEventListener('click', () => {
     if (!valid) return;
     const scenario = {
-      company, modelVersion: ({zijin: 3, cmoc: 4, zangge: 3})[company], quantityBasis: 'sales', sourceSha256: D.source_sha256,
+      company, modelVersion: company === 'cmoc' ? 4 : 3, quantityBasis: 'sales', sourceSha256: D.source_sha256,
       baseline: base, fullPreset: base.year, lastProductionPreset: productionApplied,
       productionSource: productionApplied ? P.guidance[company].source : null,
-      lastMarketApplication: marketApplied, units: D.unit, displayPriceUnits: Object.fromEntries(priceIds().map(id => [id, units[id]])),
-      exchangeRate: company === 'zangge' && base.julongSales === undefined ? null : snapshot?.fx || null, input, result: current, historicalAnnualMetrics: stats,
+      lastMarketApplication: marketApplied, units: D.unit, displayPriceUnits: {...units},
+      exchangeRate: snapshot?.fx || null, input, result: current, historicalAnnualMetrics: stats,
     };
-    const name = company === 'zijin' ? 'company-profit-scenario.json' : company + '-profit-scenario.json';
+    const name = company === 'zijin' ? 'company-profit-scenario.json' : 'cmoc-profit-scenario.json';
     download(name, JSON.stringify(scenario, null, 2), 'application/json');
   });
   $('download-backtest').addEventListener('click', () => {
     const header = ['period','baseline','estimated_parent_CNY_100m','actual_parent_CNY_100m','signed_error_pct','role','quantity_basis','inputs_json'];
     const escape = value => '"' + String(value).replaceAll('"', '""') + '"';
     const rows = annual.map(r => [r.year,r.base,r.predicted,r.actual,r.error,'annual','reported_sales',JSON.stringify(r.input)]);
-    download(company === 'zijin' ? 'company-profit-backtest.csv' : company + '-profit-backtest.csv', '\uFEFF' + [header,...rows].map(r => r.map(escape).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+    download(company === 'zijin' ? 'company-profit-backtest.csv' : 'cmoc-profit-backtest.csv', '\uFEFF' + [header,...rows].map(r => r.map(escape).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
   });
   function capture() {
     const drafts = Object.fromEntries([...$('inputs').querySelectorAll('input')].map(el => [el.id, el.value]));
@@ -338,21 +275,16 @@
     annual = M.annualBacktests(D.history, company);
     stats = M.metrics(annual);
     units = Object.fromEntries(ids.map(id => [id, P.priceUnits[id][0]]));
-    if (company === 'zangge') units.copper = P.priceUnits.copper[0];
     priceValues = {};
     latest = null;
     try {
-      const quotes = company === 'zangge' ? [] : P.snapshotPrices(snapshot).map((entry, i) => ({...entry, quote: snapshot.quotes[i]}));
+      const quotes = P.snapshotPrices(snapshot).map((entry, i) => ({...entry, quote: snapshot.quotes[i]}));
       const recent = D.history.at(-1);
       latest = ids.map(id => quotes.find(q => q.id === id) || {
         id, price: recent.metals.find(m => m.id === id).price, report: {year:recent.year, url:recent.url},
       });
-      if (company === 'zangge') latest.push({
-        id: 'copper', price: recent.julongPrice,
-        report: {year: recent.year, url: recent.copperProxyUrl, label: 'julong.proxySource'},
-      });
     } catch (_) { /* The historical presets remain usable without a market snapshot. */ }
-    $('ticker').textContent = ({zijin: '601899.SH · 02899.HK', cmoc: '603993.SH · 03993.HK', zangge: '000408.SZ'})[company];
+    $('ticker').textContent = company === 'zijin' ? '601899.SH · 02899.HK' : '603993.SH · 03993.HK';
     $('company-panel').setAttribute('aria-labelledby', 'company-' + company);
     tabs.forEach(tab => {
       const active = tab.id === 'company-' + company;
@@ -373,13 +305,10 @@
     tab.addEventListener('keydown', e => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
-      const enabled = tabs.filter(el => !el.disabled);
-      const step = e.key === 'ArrowLeft' ? -1 : 1;
-      const target = e.key === 'Home' ? enabled[0] : e.key === 'End' ? enabled.at(-1)
-        : enabled[(enabled.indexOf(tab) + step + enabled.length) % enabled.length];
-      target.focus(); target.click();
+      const target = e.key === 'Home' ? tabs[0] : e.key === 'End' ? tabs.at(-1) : tabs.find(el => el !== tab);
+      if (!target.disabled) { target.focus(); target.click(); }
     });
   });
   i18n.onChange(() => { restore(capture()); renderHistory(); renderSnapshot(); });
-  selectCompany(Object.keys(histories).find(id => histories[id]));
+  selectCompany(histories.zijin ? 'zijin' : 'cmoc');
 })();

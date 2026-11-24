@@ -7,7 +7,7 @@ GOLD_SCHEDULE = "53 15 7-10,15 * *"
 US_MACRO_SCHEDULE = "43 1 2 * *"
 REQUIRED_OUTPUTS = {
     "cn-track-pboc-gold": ("kpi.csv", "monthly.csv", "annual.csv", "phases.csv"),
-    "company-profit": ("history.json", "history.js", "cmoc-history.js", "zangge-history.js", "company-profit.html", "market-status.csv"),
+    "company-profit": ("history.json", "history.js", "cmoc-history.js", "company-profit.html", "market-status.csv"),
     "us-track-macro": ("monthly.csv",),
 }
 

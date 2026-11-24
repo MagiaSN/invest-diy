@@ -11,14 +11,12 @@
     molybdenum: {symbol: 'Mo', volumeUnit: 'tonne', salesScale: 1},
     tungsten: {symbol: 'W', volumeUnit: 'tonne', salesScale: 1},
     niobium: {symbol: 'Nb', volumeUnit: 'tonne', salesScale: 1},
-    potash: {symbol: 'KCl', volumeUnit: '10kt', salesScale: 10000},
-    lithium: {symbol: 'Li₂CO₃', volumeUnit: 'tonne', salesScale: 1},
     phosphate: {symbol: 'HA+LA', volumeUnit: '10kt', salesScale: 10000},
   };
   // Early CMOC reports publish revenue and costs for these three product groups.
   const cmocGroups = ['copperCobalt', 'molyTungsten', 'niobiumPhosphate'];
   for (const id of cmocGroups) products[id] = {volumeUnit: '10kt', salesScale: 10000};
-  const companyProducts = {zijin: ids, zangge: ['potash', 'lithium'], cmoc: ['copper', 'cobalt', 'molybdenum', 'tungsten', 'niobium', 'gold', 'phosphate']};
+  const companyProducts = {zijin: ids, cmoc: ['copper', 'cobalt', 'molybdenum', 'tungsten', 'niobium', 'gold', 'phosphate']};
   function number(value, min, max) {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error('invalid');
     return value;
@@ -26,43 +24,16 @@
   function reportedSalesInput(m) {
     return {id: m.id, production: m.sales / products[m.id].salesScale, price: m.price, cost: m.cost};
   }
-  function defaults(base, annualize = true, history = [], basis = 'reported') {
+  function defaults(base, annualize = true, history = [], taxBasis = 'reported') {
     const scale = annualize ? 12 / base.months : 1;
     const input = {
       metals: base.metals.map(reportedSalesInput),
-      tax: base.tax * 100, adjustment: 0, months: annualize ? 12 : base.months,
+      tax: base.tax * 100, share: base.share * 100, adjustment: 0, months: annualize ? 12 : base.months,
     };
     if (annualize) input.metals.forEach(m => { m.production *= scale; });
-    if (base.operatingTax !== undefined) {
-      input.tax = base.operatingTax * 100;
-      input.otherMonthly = base.other / base.months;
-      input.nciMonthly = base.nci / base.months;
-      if (base.potashResourceTaxPct !== undefined) {
-        const potash = base.metals.find(m => m.id === 'potash');
-        input.potashResourceTaxPct = base.potashResourceTaxPct;
-        input.baseMonthlyPotashRevenue = potash.sales * potash.price / 1e8 / base.months;
-      }
-      if (base.julongSales !== undefined) {
-        input.julongSales = base.julongSales * scale;
-        input.julongStake = base.julongStake;
-        input.julongPrice = base.julongPrice;
-        input.julongCost = base.julongCost;
-        input.julongOtherPerTonne = base.julongOtherPerTonne;
-        input.julongTaxPct = base.julongTaxPct;
-      } else {
-        let earnings = base.associate;
-        if (basis === 'forecast' && base.months === 12 && base.julongStake > 0) {
-          const previous = history.find(r => r.year === String(Number(base.year) - 1) && r.months === 12);
-          if (previous?.julongStake === base.julongStake) earnings += base.associate - previous.associate;
-        }
-        input.julongMonthly = earnings / base.months;
-      }
-      return input;
-    }
-    input.share = base.share * 100;
     if (base.grouped || base.metals.some(m => m.id === 'cobalt')) {
       input.associateMonthly = base.associate / base.months;
-      if (basis === 'forecast' && base.taxWindow?.pretax > 0) {
+      if (taxBasis === 'forecast' && base.taxWindow?.pretax > 0) {
         const rate = 100 * base.taxWindow.expense / base.taxWindow.pretax;
         if (rate >= 0 && rate <= 60) input.tax = rate;
       }
@@ -83,19 +54,6 @@
     }
     return input;
   }
-  function julongIncome(input, months) {
-    if (input.julongSales === undefined) return months * number(input.julongMonthly, -10000, 10000);
-    const tonnes = number(input.julongSales, 0, 1e6) * 10000;
-    const stake = number(input.julongStake, 0, 100) / 100;
-    // Version 1 scenario exports stored the adjusted after-tax margin directly.
-    if (input.julongPrice === undefined && input.julongUnitNet !== undefined) {
-      return tonnes * number(input.julongUnitNet, -1e7, 1e7) * stake / 1e8;
-    }
-    const margin = number(input.julongPrice, 0, 1e7) - number(input.julongCost, 0, 1e7);
-    const pretax = tonnes * (margin + number(input.julongOtherPerTonne, -1e7, 1e7));
-    const tax = Math.max(0, pretax) * number(input.julongTaxPct, 0, 60) / 100;
-    return (pretax - tax) * stake / 1e8;
-  }
   function estimate(input, company = 'zijin') {
     const grouped = company === 'cmoc' && input?.metals?.[0]?.id === 'copperCobalt';
     const expected = grouped ? cmocGroups : companyProducts[company];
@@ -112,9 +70,7 @@
     // Older exported scenarios encode both lines as percentages.
     const months = input.months === undefined ? 12 : number(input.months, 1, 12);
     let associate;
-    if (company === 'zangge') {
-      associate = julongIncome(input, months);
-    } else if (company === 'cmoc' && input.associateMonthly !== undefined) {
+    if (company === 'cmoc' && input.associateMonthly !== undefined) {
       associate = months * number(input.associateMonthly, -10000, 10000);
     } else {
       let driver = grouped ? metals[0].gp : metals.find(m => m.id === 'copper').gp;
@@ -123,34 +79,22 @@
     }
     const cmocBridge = company === 'cmoc' && input.baseMonthlyNet !== undefined;
     let other;
-    if (company === 'zangge' || (company === 'zijin' && input.otherMonthly !== undefined)) {
+    if (company === 'zijin' && input.otherMonthly !== undefined) {
       other = months * number(input.otherMonthly, -10000, 10000);
     } else {
       const driver = cmocBridge ? metals.reduce((sum, m) => sum + m.revenue, 0) : gp;
       other = driver * number(input.other, -200, 200) / 100;
     }
-    if (company === 'zangge' && input.potashResourceTaxPct !== undefined) {
-      // The monthly residual already includes tax on the baseline sales.
-      const baselineRevenue = months * number(input.baseMonthlyPotashRevenue, 0, Infinity);
-      const delta = metals.find(m => m.id === 'potash').revenue - baselineRevenue;
-      other -= delta * number(input.potashResourceTaxPct, 0, 100) / 100;
-    }
     const pretax = gp + associate + other;
     // No automatic recognition of a tax asset in a loss scenario.
-    const taxable = company === 'zangge' ? gp + other : pretax;
-    const tax = Math.max(0, taxable) * number(input.tax, 0, 60) / 100;
+    const tax = Math.max(0, pretax) * number(input.tax, 0, 60) / 100;
     const net = pretax - tax;
-    let coreParent;
-    if (company === 'zangge') {
-      coreParent = net - months * number(input.nciMonthly, -10000, 10000);
-    } else {
-      const share = number(input.share, 0, 100) / 100;
-      coreParent = net * share;
-      if (cmocBridge) {
-        const baseNet = number(input.baseMonthlyNet, 0, Infinity) * months;
-        const marginal = number(input.marginalShare, 0, 100) / 100;
-        coreParent += Math.max(net - baseNet, 0) * (marginal - share);
-      }
+    const share = number(input.share, 0, 100) / 100;
+    let coreParent = net * share;
+    if (cmocBridge) {
+      const baseNet = number(input.baseMonthlyNet, 0, Infinity) * months;
+      const marginal = number(input.marginalShare, 0, 100) / 100;
+      coreParent += Math.max(net - baseNet, 0) * (marginal - share);
     }
     const adjustment = number(input.adjustment, -10000, 10000);
     const parent = coreParent + adjustment;
@@ -168,7 +112,6 @@
     const input = defaults(base, false, history, 'forecast');
     // These three user inputs come from the target annual report.
     input.metals = target.metals.map(reportedSalesInput);
-    if (input.julongSales !== undefined && target.julongSales !== undefined) input.julongSales = target.julongSales;
     const predicted = estimate(input, company).parent;
     const error = target.actual === 0 ? null : 100 * (predicted / target.actual - 1);
     return {year: targetId, base: baseId, predicted, actual: target.actual, error, input};

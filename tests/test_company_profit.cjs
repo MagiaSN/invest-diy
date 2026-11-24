@@ -32,7 +32,7 @@ test('interim annualization scales flows but leaves prices, costs, tax and attri
 });
 
 test('annual tests consume reported sales, price and cost and freeze the rest of the model', () => {
-  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc], ['zangge', D.zangge]]) {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
     const history = clone(data.history), target = history.find(r => r.year === '2025');
     const predict = () => M.backtest(history, target.year, company);
     const before = predict();
@@ -194,7 +194,7 @@ test('CMOC separates mining revenue exposure from unit margins and allocates onl
 });
 
 test('five-year windows roll on a new annual report and exclude interim reports', () => {
-  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc], ['zangge', D.zangge]]) {
+  for (const [company, data] of [['zijin', D], ['cmoc', D.cmoc]]) {
     const history = clone(data.history);
     const years = () => M.annualBacktests(history, company).map(r => r.year);
     assert.deepEqual(years(), ['2021', '2022', '2023', '2024', '2025']);
@@ -245,81 +245,4 @@ test('CMOC forecast tax pools only the last three completed fiscal years at the 
   for (const taxWindow of [undefined, {pretax:0, expense:1}, {pretax:100, expense:70}]) {
     close(M.defaults({...base, taxWindow}, false, history, 'forecast').tax, base.tax * 100);
   }
-});
-
-test('Zangge reconciles original statements including signed NCI and Julong equity income', () => {
-  for (const base of D.zangge.history) {
-    const result = M.estimate(M.defaults(base, false), 'zangge');
-    close(result.gp, base.gp); close(result.associate, base.associate);
-    close(result.net, base.net); close(result.parent, base.actual); close(result.nci, base.nci);
-  }
-  const rows = M.annualBacktests(D.zangge.history, 'zangge');
-  assert.deepEqual(rows.map(r => r.year), ['2021','2022','2023','2024','2025']);
-  close(rows[1].actual, 56.5487286071); // Original FY 2022, before the comparative restatement.
-  for (const r of rows.slice(-3)) assert.ok(Math.abs(r.error) < 10, r.year);
-  rows.forEach((r, i) => close(r.error, [2.44, -9.99, -.35, -4.85, -3.87][i], .005));
-});
-
-test('early Julong forecasts use only comparable preceding annual income at the same stake', () => {
-  const history = clone(D.zangge.history);
-  const prior = history.find(r => r.year === '2023'), base = history.find(r => r.year === '2024');
-  const forecast = () => M.backtest(history, '2025', 'zangge').input.julongMonthly * 12;
-  const annualIncome = base.associate + (base.associate - prior.associate);
-  close(forecast(), annualIncome);
-  for (const future of history.filter(r => r.year > '2024')) {
-    Object.assign(future, {associate: 9000, julongStake: 100, potashResourceTaxPct: 99, operatingTax: .57});
-  }
-  close(forecast(), annualIncome);
-  prior.associate += 1;
-  close(forecast(), annualIncome - 1);
-  prior.julongStake = 25;
-  close(forecast(), base.associate);
-  close(M.defaults(base, false, [], 'forecast').julongMonthly * 12, base.associate);
-  close(M.defaults(base, false, history).julongMonthly * 12, base.associate);
-});
-
-test('Zangge changes resource tax only on incremental potash revenue and preserves legacy inputs', () => {
-  const h = D.zangge.history, b = h.at(-1);
-  const input = M.defaults(b, false), before = M.estimate(input, 'zangge');
-  const potash = input.metals.find(m => m.id === 'potash');
-  const increase = 100 * b.metals[0].sales / 1e8;
-  potash.price += 100;
-  const changed = M.estimate(input, 'zangge');
-  close(changed.other - before.other, -.08 * increase);
-  close(changed.parent - before.parent, increase * .92 * (1 - b.operatingTax));
-  potash.cost += 100;
-  input.metals[1].price += 100;
-  close(M.estimate(input, 'zangge').other, changed.other);
-  delete input.potashResourceTaxPct;
-  delete input.baseMonthlyPotashRevenue;
-  close(M.estimate(input, 'zangge').other, before.other);
-  close(M.estimate(M.defaults(b, true), 'zangge').parent, b.actual * 12 / b.months);
-});
-
-test('Julong ownership applies once to mine earnings, outside product GP and operating tax', () => {
-  const base = D.zangge.history.at(-1);
-  const input = M.defaults(base, false), actual = M.estimate(input, 'zangge');
-  close(actual.associate, 47.08); close(actual.parent, 61.0935071386);
-  assert.deepEqual(actual.metals.map(m => m.id), ['potash', 'lithium']);
-  const plan = P.production('2026-mid', 'zangge');
-  assert.deepEqual(plan, {potash:104, lithium:11000, julongSales:30.5});
-  close(input.julongPrice, 84545); close(input.julongCost, 25075);
-  const scenario = {...input, julongSales:plan.julongSales, julongPrice:80000, julongCost:30000,
-    julongOtherPerTonne:1000, julongTaxPct:9, julongStake:30.78};
-  const projected = M.estimate(scenario, 'zangge');
-  close(projected.associate, 305000 * 51000 * .91 * .3078 / 1e8);
-  close(projected.tax, actual.tax); close(projected.gp, actual.gp);
-  close(projected.parent - actual.parent, projected.associate - actual.associate);
-  const delta = 305000 * 1000 * .91 * .3078 / 1e8;
-  close(M.estimate({...scenario, julongPrice:81000}, 'zangge').parent, projected.parent + delta);
-  close(M.estimate({...scenario, julongCost:31000}, 'zangge').parent, projected.parent - delta);
-  close(M.estimate({...scenario, julongSales:0}, 'zangge').associate, 0);
-  close(M.estimate({...scenario, julongStake:0}, 'zangge').associate, 0);
-  close(M.estimate({...scenario, julongPrice:0}, 'zangge').associate, -305000 * 29000 * .3078 / 1e8);
-  for (const patch of [{julongStake:101}, {julongPrice:-1}, {julongCost:NaN}]) {
-    assert.throws(() => M.estimate({...scenario, ...patch}, 'zangge'));
-  }
-  const legacy = {...scenario, julongUnitNet:50000};
-  delete legacy.julongPrice;
-  close(M.estimate(legacy, 'zangge').associate, 305000 * 50000 * .3078 / 1e8);
 });

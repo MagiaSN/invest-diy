@@ -15,14 +15,6 @@
   };
   const guidance = {
     zijin: {plans, source},
-    zangge: {
-      plans: {
-        '2026-mid': {potash: 104, lithium: 11000, julongSales: 30.5},
-        '2026-low': {potash: 104, lithium: 11000, julongSales: 30},
-        '2026-high': {potash: 104, lithium: 11000, julongSales: 31},
-      },
-      source: 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2025-12-26/88c3cca3-af7f-4ead-b0df-bd433f9bf190.PDF',
-    },
     cmoc: {plans: cmocPlans, source: 'https://static.cninfo.com.cn/finalpage/2026-04-02/1225072765.PDF'},
   };
   function production(id, company = 'zijin') {
@@ -41,7 +33,7 @@
     return value;
   }
   const priceUnits = {gold: ['CNY/g', 'USD/oz'], copper: ['CNY/t', 'USD/t', 'USD/lb'], zinc: ['CNY/t'], silver: ['CNY/g'],
-    potash: ['CNY/t'], lithium: ['CNY/t'], cobalt: ['CNY/t'], molybdenum: ['CNY/t'], tungsten: ['CNY/t'], niobium: ['CNY/t'], phosphate: ['CNY/t']};
+    cobalt: ['CNY/t'], molybdenum: ['CNY/t'], tungsten: ['CNY/t'], niobium: ['CNY/t'], phosphate: ['CNY/t']};
   function priceFactor(id, unit, fx) {
     if (!priceUnits[id]?.includes(unit)) throw new Error('Unknown price unit');
     if (unit.startsWith('CNY/')) return 1;

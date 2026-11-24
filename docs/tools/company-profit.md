@@ -1,10 +1,10 @@
 # Company Profit Forecast
 
-The calculator at `/company-profit/` estimates attributable profit for Zijin Mining, CMOC and Zangge Mining. Each company has its own reported production, realized prices, costs and historical backtests. All three tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
+The calculator at `/company-profit/` estimates attributable profit for Zijin Mining and CMOC. Each company has its own reported production, realized prices, costs and historical backtests. Both tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
 
 A prominent bilingual notice above the page title states that estimates may be wrong, accuracy is not guaranteed, and users bear responsibility for their decisions. Its text and mounting logic are centralized in the shared `investdiy/web/static/site.js`; the page opts in with `data-site-disclaimer="profit-forecast"`.
 
-Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. All three models also work in the standalone HTML.
+Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. Both models also work in the standalone HTML.
 
 ## Build and run
 
@@ -17,7 +17,7 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python3 -m investdiy.server
 
 Use `--source /absolute/path/to/company/CLAUDE.md` to explicitly override the Zijin baseline with a research record containing `PROFIT_MODEL_DATA_START`. Both paths verify the profit attribution, tax, unit conversion and bridge reconciliations, then create ignored files under `investdiy/company_profit/data/out/`:
 
-- `history.json` contains the three verified company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js` supplies the CMOC report inputs and `zangge-history.js` supplies Zangge’s.
+- `history.json` contains both verified company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js` supplies the CMOC report inputs.
 - `market-status.csv`: collection time and each metal/FX observation date; `as_of` is the oldest observation date for homepage and publication freshness checks.
 - `company-profit.html`: a self-contained HTML file with inline CSS, JavaScript, translations and historical data. It works without a server or network connection.
 
@@ -58,30 +58,6 @@ The bridge scales other net pre-tax items by mining product revenue at the basel
 The model allocates group net profit up to the comparable baseline amount at the baseline parent share. Additional profit uses the change in attributable profit divided by the change in group net profit between the two most recent consecutive annual reports available at the baseline. The baseline share also applies to losses and substitutes for an unavailable or out-of-range incremental share. The FY 2024 test uses the baseline share because the 2022–2023 incremental share exceeds 100%. For FY 2025 the incremental share is 76.24%, versus 87.53% on baseline earnings. The FY 2025 minority-profit estimate is 37.59 against 36.89 reported. The revised total still contains offsetting errors.
 
 Scenario months scale the baseline group net profit to the modeled period. Applying annual guidance sets 12 months. Historical presets use their own duration, including the two 2026 interim reports. Those reports remain available for scenario reconciliation. Scenario exports include the two allocation rates and the baseline net profit per month.
-
-## Zangge Mining
-
-Zangge’s two consolidated product rows use potassium chloride and lithium carbonate sales, ex-VAT revenue per tonne and cost of sales per tonne. The price preset restores the latest report’s realized prices. FY 2026 volume presets use planned sales of 1.04 million tonnes of potassium chloride and 11,000 tonnes of lithium carbonate. The Julong low, midpoint and high scenarios assume the mine sells its planned copper output of 300,000–310,000 tonnes. Mamico equity output is outside consolidated lithium sales. Incremental earnings from industrial salt or Mamico can be entered as an attributable adjustment. [2026 operating plan](https://disc.static.szse.cn/download/disc/disk03/finalpage/2025-12-26/88c3cca3-af7f-4ead-b0df-bd433f9bf190.PDF)
-
-Julong is an equity-method associate. From FY 2025, users enter whole-mine sales in tonnes of contained copper (displayed in 10,000 t), ex-VAT selling price and unit sales cost. The latter two default to Zijin Group’s copper concentrate disclosures for the same period. The 9M 2026 reference price is CNY 84,545/t and cost is CNY 25,075/t. The model derives a baseline residual per tonne so that copper gross profit plus other mine earnings, after mine tax and ownership allocation, reproduces Zangge’s reported equity income. The residual includes by-products, expenses, acquisition-basis adjustments and differences between group and mine unit economics. Scenario profit scales this residual with sales, applies the disclosed 9% mine tax rate to positive profit and allocates the result at Zangge’s stake. [Zijin 9M concentrate data](https://static.cninfo.com.cn/finalpage/2026-10-24/1225620996.PDF) · [Zijin interim report, income tax note](https://static.cninfo.com.cn/finalpage/2026-08-22/1225493590.PDF)
-
-In 9M 2026 the mine sold 216,500 tonnes and Zangge recognized CNY 4.708 billion at a 30.78% stake. Cash dividends of CNY 4.617 billion reduced the investment’s carrying amount. The bridge applies Zangge’s effective tax rate to positive pre-tax earnings excluding Julong. Other pre-tax items and signed noncontrolling profit or loss start from baseline monthly amounts. A change in ex-VAT potash revenue relative to the duration-adjusted baseline changes modeled resource tax at the 8% rate disclosed for potassium chloride. Applying the rate to the change preserves the actual baseline tax charge, including differences between recognized revenue and the tax base. [2026 third-quarter report](https://static.cninfo.com.cn/finalpage/2026-10-17/1225608840.PDF) · [2025 annual report, tax notes](https://static.cninfo.com.cn/finalpage/2026-03-14/1225009932.PDF)
-
-For early baselines without mine sales, the old forecast carried baseline Julong income forward throughout the ramp-up. The revised one-year forecast adds the last absolute annual change in recognized equity income to the baseline. Both reports must cover consecutive full years at the same stake. FY 2020 included the sale of a 6.22% interest, so the first comparable pair is FY 2021–2022. Without a pair the model carries baseline earnings forward. The latest scenarios use the copper volume, price and cost model directly. [2020 annual report, long-term equity investments](https://static.cninfo.com.cn/finalpage/2021-04-13/1209678638.PDF) · [2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-10/1216083648.PDF)
-
-The rolling tests use each target annual report’s own potash and lithium sales, realized prices and unit costs. All other assumptions are available by the preceding annual report. Amounts below are in CNY 100m. The two Julong columns show the associate-income assumption alongside the reported outcome.
-
-| FY | Julong forecast | Julong reported | Estimated parent profit | Reported parent profit | Previous error | Revised error |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2021 | −2.27 | 2.37 | 14.62 | 14.27 | +6.43% | +2.44% |
-| 2022 | 2.37 | 7.25 | 50.90 | 56.55 | −8.64% | −9.99% |
-| 2023 | 12.13 | 12.96 | 34.08 | 34.20 | −15.84% | −0.35% |
-| 2024 | 18.67 | 19.28 | 24.55 | 25.80 | −29.56% | −4.85% |
-| 2025 | 25.59 | 27.82 | 37.03 | 38.52 | −19.00% | −3.87% |
-
-Five-year MAPE falls from 15.89% to 4.30%. Maximum absolute error falls from 29.56% to 9.99%. The last three years were examined during model development. Their errors include the Julong forecast error and can reflect offsetting errors elsewhere in the earnings bridge. A reversal in copper prices or a change in the ramp-up rate can invalidate the historical income trend.
-
-The annual window ends before the first year with a comparable mine-sales baseline. As a separate check on the copper model, freezing FY 2025 bridge parameters and using reported 9M 2026 volumes, own-product prices and costs, and Zijin’s 9M copper concentrate price and cost proxies gives attributable earnings of 55.68 against 61.09 reported (−8.86%). Estimated Julong income is 42.15 against 47.08. This is an interim check conditional on realized inputs and group proxies. [Zangge 9M 2026](https://static.cninfo.com.cn/finalpage/2026-10-17/1225608840.PDF) · [Zijin 9M 2026](https://static.cninfo.com.cn/finalpage/2026-10-24/1225620996.PDF)
 
 ## Parameter presets and actuals
 
@@ -160,7 +136,7 @@ The incremental adjustment is **attributable, after-tax** and only includes cont
 
 ## Historical validation
 
-All three tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
+Both tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
 
 Configured thresholds: annual MAPE ≤15% and maximum annual absolute percentage error ≤25%. Signed error is `100 * (estimated / actual - 1)`; MAPE is the unweighted mean of absolute annual percentage errors.
 
