@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from investdiy import export, registry
-from investdiy.server import tools_payload
+from investdiy.server import HOME_TOOLS, tools_payload
 
 
 class VisibilityTests(unittest.TestCase):
@@ -20,6 +20,7 @@ class VisibilityTests(unittest.TestCase):
         self.add_tool('local_tool', visibility='local')
         self.add_tool('unspecified_tool')
         self.addCleanup(patch.stopall)
+        patch('investdiy.server.HOME_TOOLS', ['public_tool', 'local_tool', 'unspecified_tool']).start()
         patch.object(registry, 'TOOLS_DIR', self.root).start()
         patch.object(registry.importlib, 'import_module', side_effect=lambda name: self.modules[name]).start()
 
@@ -115,10 +116,19 @@ class ProjectVisibilityTests(unittest.TestCase):
         self.assertEqual(registry.discover()['global-track-gold'][0].visibility, 'local')
         self.assertNotIn('global-track-gold', registry.discover(public_only=True))
 
-    def test_battery_tracker_is_last_locally_and_excluded_from_public_discovery(self):
+    def test_home_catalog_lists_each_tool_in_configured_order(self):
+        tools = registry.discover()
+        self.assertCountEqual(HOME_TOOLS, list(tools))
+        self.assertEqual([row['slug'] for row in tools_payload(tools)], HOME_TOOLS)
+
+    def test_financial_calendar_is_local_and_excluded_from_public_discovery(self):
+        slug = 'financial-calendar'
+        self.assertEqual(registry.discover()[slug][0].visibility, 'local')
+        self.assertNotIn(slug, registry.discover(public_only=True))
+
+    def test_battery_tracker_is_local_and_excluded_from_public_discovery(self):
         slug = 'cn-track-battery-schedule'
-        local = tools_payload(registry.discover())
-        self.assertEqual((local[-1]['slug'], local[-1]['visibility']), (slug, 'local'))
+        self.assertEqual(registry.discover()[slug][0].visibility, 'local')
         self.assertNotIn(slug, registry.discover(public_only=True))
 
     def test_copper_is_local_and_excluded_from_public_discovery(self):

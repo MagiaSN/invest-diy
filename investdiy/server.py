@@ -26,6 +26,19 @@ from urllib.parse import unquote, urlsplit
 from .registry import TOOLS_DIR, discover
 
 WEB = TOOLS_DIR / "web"
+HOME_TOOLS = [
+    "financial-calendar",
+    "pe-calculator",
+    "company-profit",
+    "us-track-macro",
+    "ashare-track-national-team-etf",
+    "cn-track-pboc-gold",
+    "global-track-container-freight",
+    "global-track-copper",
+    "global-track-gold",
+    "cn-track-battery-schedule",
+]
+
 mimetypes.add_type("text/csv", ".csv")
 mimetypes.add_type("text/javascript", ".js")
 
@@ -38,12 +51,12 @@ def _inside(base: Path, rel: str) -> Path | None:
 
 def tools_payload(tools: dict) -> list[dict]:
     """Tool list for the home page (shared by the server and the static export)."""
-    priority = {"pe-calculator": 0, "company-profit": 1, "us-track-macro": 2, "cn-track-battery-schedule": 4}
+    ordered_tools = (tools[slug] for slug in HOME_TOOLS if slug in tools)
     return [
         {"slug": t.slug, "url": f"/{t.slug}/", "asof": t.asof(meta), "update": t.update, "visibility": t.visibility,
          "zh": {"title": t.title, "description": t.description, "kind": t.kind},
          "en": {"title": t.title_en, "description": t.description_en, "kind": t.kind_en}}
-        for t, meta in sorted(tools.values(), key=lambda entry: priority.get(entry[0].slug, 3))
+        for t, meta in ordered_tools
     ]
 
 

@@ -12,6 +12,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 
 | Tool | Visibility | What it does |
 |---|---|---|
+| [Financial Events Calendar](docs/tools/financial-calendar.md) | Local only | Company earnings for the S&P 500, Nasdaq-100, Hang Seng Index and CSI 300, US jobs and inflation releases, FOMC meetings and oversight of NVIDIA and Jensen Huang for the current month and next three months, with one week per row and release times in Eastern and Beijing time. |
 | [PE Valuation Calculator](docs/tools/pe-calculator.md) | Public | Models earnings growth and distributable profit ratios by stage, plus an independent long-run ratio and equity risk premium, to compare current PE across risk-free rates. Runs entirely in the browser, with annual calculations and CSV export. |
 | [Company Earnings Forecast](docs/tools/company-profit.md) | Public | Zijin Mining, CMOC and CNOOC Limited earnings scenarios with production guidance, editable prices and costs, sensitivity analysis and historical backtests. CMOC covers six metals and phosphate fertilizer. CATL scenarios use EV and storage battery sales and gross profit per Wh. |
 | [A-Share National Team ETF Tracker](docs/tools/ashare-track-national-team-etf.md) | Public | Estimates daily net creations and redemptions of the broad-based ETFs held by China's "national team" (Central Huijin, China Securities Finance and others) from exchange-published unit counts, flags entry and exit waves, derives hard lower bounds on its selling from fund reports, and backtests a strategy that follows its estimated position one day later. |
@@ -28,7 +29,7 @@ Live snapshot: <https://invest-diy.surge.sh/>
 - **Fully local front end**: charts use a vendored copy of d3; pages load nothing from CDNs
 - **Bilingual pages**: every page ships English and Chinese text and picks one from the browser language, with a switch in the top bar
 - **Static export**: one command exports only explicitly public tools; local pages and data are excluded
-- **Pluggable tools**: a tool is a Python sub-package with a metadata dict and a `web/` folder; the home page discovers it automatically
+- **Pluggable tools**: a tool is a Python sub-package with a metadata dict and a `web/` folder. The `HOME_TOOLS` list in `investdiy/server.py` sets the home page order
 
 ## Quick start
 

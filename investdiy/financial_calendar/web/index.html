@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="cal.title">金融大事日历</title>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="topbar-home" href="/" data-i18n="common.home">投研工具箱</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-title" data-i18n="cal.title">金融大事日历</span>
+</div></header>
+<main class="page">
+  <header class="intro">
+    <h1 class="page-title" data-i18n="cal.title">金融大事日历</h1>
+    <p class="lede" data-i18n="cal.lede">本月及之后三个月的美股、港股和 A 股公司财报，美国就业与通胀数据、美联储议息会议，以及英伟达和黄仁勋相关的国会与调查日程。</p>
+  </header>
+  <section class="card agenda" aria-labelledby="window">
+    <div class="card-head">
+      <div><h2 id="window"></h2><p class="note" id="checked"></p></div>
+      <div class="seg" role="group" data-i18n-aria-label="cal.filter">
+        <button type="button" data-group="all" aria-pressed="true" data-i18n="cal.all">全部</button>
+        <button type="button" data-group="earnings" aria-pressed="false" data-i18n="cal.earnings">公司财报</button>
+        <button type="button" data-group="jobs" aria-pressed="false" data-i18n="cal.jobs">就业</button>
+        <button type="button" data-group="prices" aria-pressed="false" data-i18n="cal.prices">通胀</button>
+        <button type="button" data-group="policy" aria-pressed="false" data-i18n="cal.policy">议息会议</button>
+        <button type="button" data-group="nvidia" aria-pressed="false" data-i18n="cal.nvidia">英伟达 / 黄仁勋</button>
+      </div>
+    </div>
+    <div id="earnings-filters" hidden>
+      <label><span data-i18n="cal.index">指数</span>
+        <select id="earnings-index">
+          <option value="" data-i18n="cal.allIndices">全部指数</option>
+          <option value="sp500" data-i18n="cal.sp500">标普 500</option>
+          <option value="ndx" data-i18n="cal.ndx">纳斯达克 100</option>
+          <option value="hsi" data-i18n="cal.hsi">恒生指数</option>
+          <option value="csi300" data-i18n="cal.csi300">沪深 300</option>
+        </select>
+      </label>
+      <label><span data-i18n="cal.search">公司名称或代码</span> <input type="search" id="earnings-search"></label>
+      <p class="note" id="coverage"></p>
+    </div>
+    <p class="note" id="load-error" hidden></p>
+    <p class="stale" id="stale" hidden></p>
+    <p class="stale" id="earnings-stale" hidden></p>
+    <div id="agenda" aria-live="polite"><p data-i18n="common.loading">加载中…</p></div>
+  </section>
+  <p class="note" data-i18n="cal.method">财报按上市市场当地日期展示。美国宏观事件按美东日期排列，已公布的时刻同时显示美东时间和北京时间。灰色底纹表示按美东日期已经过去的天。</p>
+</main>
+<dialog id="event-dialog" aria-labelledby="event-title">
+  <form method="dialog"><button class="close" data-i18n="cal.close">关闭</button></form>
+  <p id="event-date" class="note"></p>
+  <h2 id="event-title"></h2>
+  <div id="event-details"></div>
+</dialog>
+<script src="/static/vendor/d3.v7.9.0.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/site.js"></script>
+<script src="/static/kit.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

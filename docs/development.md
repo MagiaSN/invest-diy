@@ -61,7 +61,7 @@ Market codes: `ashare` (China A-shares), `cn` (China, outside the stock market: 
 2. Add `__main__.py` so that `python -m investdiy.<package>` fetches and recomputes everything, writing page data to `data/out/`.
 3. Add `web/index.html` with the shared assets in the order listed in [Architecture](architecture.md#front-end-kit), plus `web/strings.js` (dictionary) and `web/app.js` (page code). Read data with relative paths, e.g. `kit.csv('data/xxx.csv')`.
 4. Reuse shared helpers with relative imports: `from ..common import net, market, fund_reports`.
-5. Choose `visibility`: use `"local"` for local access only, or explicitly set `"public"` to include the tool in static exports and the Surge update/publish workflow. Missing visibility defaults to local; unknown values fail discovery. Restart the server; the home page lists the tool with its visibility badge.
+5. Choose `visibility`: use `"local"` for local access only, or explicitly set `"public"` to include the tool in static exports and the Surge update/publish workflow. Missing visibility defaults to local; unknown values fail discovery. Insert the tool's slug at the desired position in the `HOME_TOOLS` list in `investdiy/server.py`, then restart the server.
 6. Document the tool in `docs/tools/<slug>.md` (method, data sources, validation, limitations) and add it to the tools table in `README.md`.
 
 Further pages of the same tool sit next to `index.html` (for example `web/backtest.html`, served at `/<slug>/backtest.html`).
@@ -92,6 +92,7 @@ Current coverage:
 | `global-track-copper` | Local update command; no Actions coverage |
 | `company-profit` | `update.yml` → `site` artifact; metal prices and FX snapshot |
 | `us-track-macro` | `update.yml` → `site` artifact; monthly US macroeconomic observations |
+| `financial-calendar` | Local update command for US economic releases, FOMC meetings, NVIDIA oversight and constituent earnings |
 | `pe-calculator` | Browser-only; no data update needed |
 
 ### 2. Pull Actions data

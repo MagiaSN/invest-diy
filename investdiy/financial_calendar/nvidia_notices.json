@@ -1,0 +1,75 @@
+{
+  "reviewed_on": "2026-11-24",
+  "events": [
+    {
+      "date": "2026-11-08", "kind": "review", "agency": "NVIDIA",
+      "title_zh": "英伟达董事会启动独立调查", "title_en": "NVIDIA board opens independent inquiry",
+      "detail_zh": "英伟达表示，针对黄仁勋成为外国情报活动目标的相关报道，由独立董事组成的委员会将在外部律师协助下调查。",
+      "detail_en": "NVIDIA announced that independent directors, assisted by outside counsel, would examine reports of a foreign intelligence effort targeting Jensen Huang.",
+      "url": "https://nvidianews.nvidia.com/news/statement-from-nvidia-board-of-directors"
+    },
+    {
+      "date": "2026-11-12", "kind": "request", "agency": "SenateFinance",
+      "title_zh": "国会议员就英伟达芯片出口许可致函商务部长", "title_en": "Lawmakers seek records on NVIDIA export licences",
+      "detail_zh": "参议员怀登和众议员尼尔致函商务部长，宣布调查政府如何批准英伟达芯片对华出口并对销售征税，要求保存许可审批及与公司的通信记录。",
+      "detail_en": "Senator Ron Wyden and Representative Richard Neal announced an inquiry into the administration’s approval and taxation of NVIDIA chip exports to China. Their letter asks the commerce secretary to preserve licensing records and communications.",
+      "url": "https://www.finance.senate.gov/wp-content/uploads/2026/11/11122026wydenneallettertolutnickonnvidia.pdf"
+    },
+    {
+      "date": "2026-11-17", "kind": "update", "agency": "USDOJ",
+      "title_zh": "美国司法部公布 Megaspeed 刑事调查进展", "title_en": "US Justice Department publishes Megaspeed investigation update",
+      "detail_zh": "司法部网站刊登与商务部的联合声明，说明司法部正牵头调查英伟达客户 Megaspeed 涉嫌违反出口管制一事。商务部曾向英伟达索取销售记录。此处日期为公告发布日期。",
+      "detail_en": "A joint statement posted by the Justice Department identifies NVIDIA customer Megaspeed as the subject of a criminal export-control investigation. Commerce had requested sales records from NVIDIA. The calendar marks the publication date.",
+      "url": "https://www.justice.gov/opa/pr/joint-statement-department-commerce-and-department-justice-megaspeed-investigation"
+    },
+    {
+      "date": "2026-11-19", "kind": "subpoena", "agency": "CaliforniaDOJ",
+      "title_zh": "加州总检察长向英伟达送达调查传票", "title_en": "California attorney general serves NVIDIA with investigative subpoena",
+      "detail_zh": "加州司法部向英伟达索取资料，调查先进芯片或保密信息是否流向中国，以及公司是否就相关风险误导投资者或公众。日历标示传票送达日。",
+      "detail_en": "California sought information from NVIDIA about possible transfers of advanced chips or confidential information to China and its disclosures to investors and the public. This is the date the subpoena was served.",
+      "url": "https://oag.ca.gov/node/633133"
+    },
+    {
+      "date": "2026-11-23", "kind": "review", "agency": "NVIDIA",
+      "title_zh": "英伟达确认黄仁勋复任后独立调查继续", "title_en": "NVIDIA says independent inquiry will continue after Huang’s reinstatement",
+      "detail_zh": "英伟达在黄仁勋复任首席执行官的公告中确认，独立董事委员会将继续调查，公司也将继续配合政府问询。",
+      "detail_en": "In announcing Huang’s return as CEO, the board said its independent committee would continue its inquiry and the company would continue cooperating with government investigations.",
+      "url": "https://nvidianews.nvidia.com/news/nvidia-board-reinstates-jensen-huang-as-president-ceo-and-board-director"
+    },
+    {
+      "date": "2026-11-23", "kind": "request", "agency": "RepBera",
+      "title_zh": "众议员贝拉呼吁国会调查黄仁勋复任一事", "title_en": "Rep. Bera calls for congressional investigation after Huang’s return",
+      "detail_zh": "众议员阿米·贝拉发表声明，呼吁国会调查。该条目标示议员发出呼吁的日期，声明未列出新的听证日期。",
+      "detail_en": "Representative Ami Bera issued a public call for Congress to investigate. This entry dates his statement. It did not set a hearing date.",
+      "url": "https://bera.house.gov/news/press-releases/rep-bera-calls-for-congressional-investigation-following-reinstatement-of-nvidia-ceo-jensen-huang"
+    },
+    {
+      "date": "2026-12-01", "kind": "interview", "agency": "HouseIntel",
+      "title_zh": "黄仁勋接受众议院三委员会闭门问询", "title_en": "House committees schedule closed interview with Jensen Huang",
+      "detail_zh": "众议院情报、外交和对华战略竞争特别委员会主席确认，黄仁勋已同意自愿出席有逐字记录的问询。公告仅列出日期。",
+      "detail_en": "The chairs of the House Intelligence, Foreign Affairs and China select committees confirmed Huang agreed to a voluntary transcribed interview. Their announcement gives the date only.",
+      "url": "https://intelligence.house.gov/2026/11/17/jensen-huang-and-nvidia-agree-to-appear-before-congress/"
+    },
+    {
+      "date": "2026-12-02", "kind": "interview", "agency": "HouseIntel",
+      "title_zh": "英伟达总法律顾问接受众议院问询", "title_en": "House committees schedule interview with NVIDIA general counsel",
+      "detail_zh": "众议院三个委员会确认，英伟达总法律顾问蒂姆·特特（Tim Teter）同意自愿出席有逐字记录的问询。公告仅列出日期。",
+      "detail_en": "The same three House committees confirmed NVIDIA General Counsel Tim Teter agreed to a separate voluntary transcribed interview. Their announcement gives the date only.",
+      "url": "https://intelligence.house.gov/2026/11/17/jensen-huang-and-nvidia-agree-to-appear-before-congress/"
+    },
+    {
+      "date": "2026-12-02", "kind": "deadline", "agency": "HouseEC",
+      "title_zh": "众议院要求英伟达和商务部提供简报的截止日", "title_en": "House deadline requested for NVIDIA and Commerce briefings",
+      "detail_zh": "众议院能源和商务委员会主席要求英伟达和商务部最迟在这一天分别就 Megaspeed 相关问题提供简报。这是来函提出的期限，实际简报时间未公布。",
+      "detail_en": "The House Energy and Commerce chair asked NVIDIA and the Commerce Department to provide briefings on Megaspeed by this date. The letters specify a deadline and give no appointment time.",
+      "url": "https://energycommerce.house.gov/posts/chairman-guthrie-requests-briefings-from-nvidia-and-department-of-commerce-over-megaspeed-and-national-security-concerns"
+    },
+    {
+      "date": "2026-12-03", "time_et": "10:00", "kind": "hearing", "agency": "SenateBanking",
+      "title_zh": "黄仁勋出席参议院出口管制公开听证会", "title_en": "Senate Banking schedules public export-controls hearing with Jensen Huang",
+      "detail_zh": "参议院银行、住房和城市事务委员会将公开审查美国出口管制，列明证人为英伟达首席执行官黄仁勋。地点为德克森参议院办公楼 106 室，委员会页面提供直播入口。",
+      "detail_en": "The Senate Banking Committee lists NVIDIA CEO Jensen Huang as the witness for its open hearing on US export controls in Dirksen Senate Office Building, room 106. The committee page provides the webcast.",
+      "url": "https://www.banking.senate.gov/hearings/protecting-americas-ai-advantage-oversight-of-us-export-controls"
+    }
+  ]
+}
