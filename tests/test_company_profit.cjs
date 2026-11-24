@@ -279,3 +279,83 @@ test('CNOOC net production guidance scales consolidated oil and gas sales separa
     close(plan.gas, 492.3 / 398.7 * total, .00005);
   }
 });
+
+const CATL = require('../investdiy/company_profit/web/catl-model.js');
+
+test('CATL reconciles original product gross profits, annual earnings and signed losses', () => {
+  for (const r of D.catl.history) {
+    const input = CATL.annualInputs(r);
+    const value = CATL.estimate(input);
+    close(value.ev, r.products.ev.revenue - r.products.ev.cost);
+    close(value.storage, r.products.storage.revenue - r.products.storage.cost);
+    close(input.otherGrossPerWh * (input.evVolume + input.storageVolume) * 10, r.ancillaryBusinessGross);
+    close(value.otherBusiness, r.ancillaryBusinessGross);
+    close(value.gp, r.groupGross);
+    close(value.parent, r.parent);
+  }
+  const q4 = CATL.quarterInputs(D.catl);
+  const nineMonths = D.catl.forecast.nineMonths.parent;
+  const current = CATL.estimate(q4, nineMonths);
+  close(current.annual, current.parent + 645.30063);
+  close(current.annual, 936.1711133, 1e-6);
+  const shock = CATL.estimate({...q4, evMarginPerWh: q4.evMarginPerWh - .001}, nineMonths);
+  close(current.ev - shock.ev, 1.95);
+  close(current.storage, shock.storage);
+  const loss = CATL.estimate({...q4, evMarginPerWh: -.2});
+  assert.ok(loss.parent < 0);
+  close(loss.tax, 0);
+  assert.throws(() => CATL.estimate({...q4, storageVolume: -1}));
+});
+
+test('CATL five-year errors reconcile and forecasts exclude target financial results', () => {
+  const history = clone(D.catl.history);
+  const rows = CATL.backtests(history);
+  assert.deepEqual(rows.map(r => r.year), [2021, 2022, 2023, 2024, 2025]);
+  for (const r of rows) {
+    assert.equal(r.base, r.year - 1);
+    close(Object.values(r.errors).reduce((a, b) => a + b), r.predicted - r.actual);
+  }
+  const stats = M.metrics(rows);
+  assert.ok(stats.mape < 10 && stats.maxError < 10);
+  const basis = history.find(r => r.year === 2023);
+  const batteryGross = Object.values(basis.products).reduce((n, p) => n + p.revenue - p.cost, 0);
+  close(rows[3].input.spendingRate, 100 * (basis.expenses - basis.payroll - 149.116964)
+    / (batteryGross - 149.116964));
+  // Mutate each held-out year separately, so later years can never leak into an earlier estimate.
+  for (const [index, expected] of rows.entries()) {
+    const changed = clone(history);
+    const target = changed[index + 1];
+    for (const key of ['groupGross', 'ancillaryBusinessGross', 'expenses', 'payroll', 'finance', 'associates',
+      'interestIncome', 'interestExpense', 'financeFees', 'openingCash', 'closingCash', 'otherIncome',
+      'impairment', 'tax', 'pretax', 'net', 'parent']) target[key] *= 1.1;
+    // Gross profit and volume are unchanged by equal increments to revenue and cost.
+    target.products.ev.revenue += 20;
+    target.products.ev.cost += 20;
+    close(CATL.backtests(changed.slice(0, index + 2)).at(-1).predicted, expected.predicted);
+  }
+});
+
+test('CATL cash yields, pooled attribution and payroll floor use reported baselines', () => {
+  const h = D.catl.history, fy20 = h[0], r = CATL.backtests(h)[0].input;
+  close(r.finance, 14.9460095867 * 684.2411605367 / ((322.6963532707 + 684.2411605367) / 2)
+    - 6.4043431654 - .236170414);
+  close(r.investment, -.0402733209);
+  close(r.taxRate, 100 * (fy20.tax + fy20.priorIncome.tax) / (fy20.pretax + fy20.priorIncome.pretax));
+  close(r.parentShare, 100 * (fy20.parent + fy20.priorIncome.parent) / (fy20.net + fy20.priorIncome.net));
+  const loss = CATL.estimate({...r, evMarginPerWh: -1, storageMarginPerWh: -1});
+  close(loss.expenses, -r.payroll);
+  close(loss.tax, 0);
+});
+
+test('CATL version 1 and 2 scenarios retain their original volume-based profit bridges', () => {
+  const input = {evVolume: 20, storageVolume: 5, evMarginPerWh: .12, storageMarginPerWh: .08,
+    expensePerGWh: 2e7, otherGrossPerGWh: 1e7, finance: 2, investment: 1, otherIncome: 3,
+    impairment: -2, remaining: -1, nonRecurring: 2, taxRate: 20, parentShare: 90};
+  const {evMarginPerWh, storageMarginPerWh, ...common} = input;
+  for (const old of [input, {...common, evMargin: evMarginPerWh * 1e9, storageMargin: storageMarginPerWh * 1e9}]) {
+    const result = CATL.estimate(old);
+    close(result.expenses, -5);
+    close(result.otherGross, 2.5);
+    close(result.parent, (24 + 4 + 2.5 - 5 + 5) * .8 * .9);
+  }
+});

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const M = window.CompanyProfitModel, P = window.CompanyProfitPresets, data = window.CompanyProfitData;
-  const histories = {zijin: data, cmoc: window.CmocProfitData, cnooc: window.CnoocProfitData};
+  const histories = {zijin: data, cmoc: window.CmocProfitData, cnooc: window.CnoocProfitData, catl: window.CatlProfitData};
   const firstCompany = Object.keys(histories).find(id => histories[id]);
   const $ = id => document.getElementById(id);
   if (!firstCompany) { $('error').hidden = false; $('error').textContent = i18n.t('common.failed'); $('results').hidden = true; $('download').disabled = true; return; }
@@ -307,8 +307,20 @@
   }
   function selectCompany(next) {
     if (next === company) return;
-    if (company) saved[company] = capture();
+    if (company && company !== 'catl') saved[company] = capture();
     company = next;
+    $('ticker').textContent = {zijin: '601899.SH · 02899.HK', cmoc: '603993.SH · 03993.HK', cnooc: '600938.SH · 00883.HK', catl: '300750.SZ · 03750.HK'}[company];
+    tabs.forEach(tab => {
+      const active = tab.id === 'company-' + company;
+      tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
+    });
+    $('catl-panel').hidden = company !== 'catl';
+    $('company-panel').hidden = company === 'catl';
+    if (company === 'catl') {
+      window.CatlProfitPage.show({row, download, fmt});
+      return;
+    }
+    $('company-panel').setAttribute('aria-labelledby', 'company-' + company);
     D = histories[company];
     guidance = D.guidance || P.guidance[company];
     ids = M.companyProducts[company];
@@ -320,12 +332,6 @@
     if (company === 'cnooc' && latest) {
       for (const id of ids) units[id] = P.priceUnits[id][1];
     }
-    $('ticker').textContent = {zijin: '601899.SH · 02899.HK', cmoc: '603993.SH · 03993.HK', cnooc: '600938.SH · 00883.HK'}[company];
-    $('company-panel').setAttribute('aria-labelledby', 'company-' + company);
-    tabs.forEach(tab => {
-      const active = tab.id === 'company-' + company;
-      tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
-    });
     localized.forEach(([el, key]) => { el.dataset.i18n = keyFor(key); });
     options('base', D.history.filter(r => !r.grouped).map(r => r.year).reverse(), 'period.');
     options('production-preset', Object.keys(guidance.plans), 'plan.');
@@ -346,6 +352,6 @@
       target.focus(); target.click();
     });
   });
-  i18n.onChange(() => { restore(capture()); renderHistory(); renderSnapshot(); });
+  i18n.onChange(() => { if (company === 'catl') { window.CatlProfitPage.refresh(); return; } restore(capture()); renderHistory(); renderSnapshot(); });
   selectCompany(firstCompany);
 })();

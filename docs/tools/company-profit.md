@@ -1,10 +1,10 @@
 # Company Earnings Forecast
 
-The calculator at `/company-profit/` estimates attributable profit for Zijin Mining, CMOC and CNOOC Limited. Each company has its own reported production, realized prices, costs and historical backtests. All three tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
+The calculator at `/company-profit/` estimates attributable profit for Zijin Mining, CMOC, CNOOC Limited and CATL. The mining and oil models use sales volumes, prices and unit sales costs. CATL uses sales in GWh and gross profit per Wh. Each company has editable financial assumptions, a sensitivity matrix, historical validation, scenario JSON and backtest CSV downloads.
 
 A prominent bilingual notice above the page title states that estimates may be wrong, accuracy is not guaranteed, and users bear responsibility for their decisions. Its text and mounting logic are centralized in the shared `investdiy/web/static/site.js`; the page opts in with `data-site-disclaimer="profit-forecast"`.
 
-Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. All three models also work in the standalone HTML.
+Zijin Mining opens first. Switching companies retains edits, price units, selected presets and invalid drafts for the current visit. All four models also work in the standalone HTML.
 
 ## Build and run
 
@@ -17,7 +17,7 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python3 -m investdiy.server
 
 Use `--source /absolute/path/to/company/CLAUDE.md` to explicitly override the Zijin baseline with a research record containing `PROFIT_MODEL_DATA_START`. Both paths verify the profit attribution, tax, unit conversion and bridge reconciliations, then create ignored files under `investdiy/company_profit/data/out/`:
 
-- `history.json` contains all three verified company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js` and `cnooc-history.js` supply the other companies’ report inputs.
+- `history.json` contains all four company histories and their source fingerprints. `history.js` provides Zijin data and the shared metal and FX snapshot to the browser. `cmoc-history.js`, `cnooc-history.js` and `catl-history.js` supply the other companies’ report inputs.
 - `market-status.csv`: collection time and each metal/FX observation date; `as_of` is the oldest observation date for homepage and publication freshness checks.
 - `company-profit.html`: a self-contained HTML file with inline CSS, JavaScript, translations and historical data. It works without a server or network connection.
 
@@ -68,6 +68,28 @@ The startup price preset uses the company’s nine-month realized prices of USD 
 The reports disclose a combined oil and gas cost of sales. The model divides it by reported million BOE sold, assigns one BOE per barrel of liquids, and allocates the remainder to gas. The two unit costs can be edited independently. Their historical allocation reconciles to consolidated oil and gas gross profit. In FY 2025, oil and gas sales of CNY 335,652 million less CNY 136,138 million in cost of sales give gross profit of CNY 199,514 million. FY 2020 and FY 2021 use the audited A-share cost disclosure alongside their annual reports. [FY 2025 report](https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF) · [FY 2020 report](https://www1.hkexnews.hk/listedco/listconews/sehk/2021/0408/2021040800121.pdf) · [FY 2021 report](https://www1.hkexnews.hk/listedco/listconews/sehk/2022/0412/2022041200025.pdf) · [FY 2020–2021 cost disclosure](https://static.cninfo.com.cn/finalpage/2022-04-20/1212978191.PDF)
 
 The bridge scales associate and joint venture income and signed noncontrolling earnings by scenario months. Other pre-tax items scale with oil and gas revenue at the baseline ratio. They include the net effects of trading, levies, expenses and impairments. Positive pre-tax profit uses the baseline effective tax rate. The forecast opens with H1 2026 financial parameters and annual guidance. The historical tests freeze financial parameters at the prior fiscal year and supply actual sales, prices and allocated costs from the target year. FY 2021–2025 MAPE is 5.20%, with the largest absolute error in FY 2021 at 11.48%. These figures measure model error conditional on realized inputs.
+
+## CATL
+
+The opening FY 2026 estimate adds modeled Q4 attributable profit to the reported nine-month total of CNY 64.530063 billion. The Q3 call described combined sales above 260 GWh with about one quarter in storage. The editable Q4 scenario uses 195 GWh of EV batteries and 65 GWh of storage batteries. Both unit gross profits default to FY 2025. Selecting a different margin year updates only the two margins. Annual presets replace the entire scenario and remove the nine-month carry. [Nine-month report](https://static.cninfo.com.cn/finalpage/2026-10-21/1225613175.PDF) · [Q3 investor call](https://static.cninfo.com.cn/finalpage/2026-10-21/1225613436.PDF) · [2025 annual report](https://static.cninfo.com.cn/finalpage/2026-03-09/1225002666.PDF)
+
+Product gross profit in CNY 100m equals GWh sold multiplied by gross profit in CNY/Wh and by 10. Negative margins are supported. Realized unit gross profit divides reported product revenue less its cost of sales by that product’s sales volume in Wh. FY 2020–2022 storage volumes use total less EV sales. FY 2024 and 2025 retain the independently rounded product volumes. The FY 2020 audit published alongside the annual report confirms the storage cost of CNY 1,243,285,666.92 on printed page 72. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-04-28/1209834834.PDF) · [2020 original audit, PDF page 80](https://static.cninfo.com.cn/finalpage/2021-04-28/1209834789.PDF#page=80)
+
+The model carries forward the period gross profit of materials, recycling and mining. It projects the separate “other business” line from the revenue and cost note at the baseline gross profit per Wh of battery sales. Operating expenses consist of the reported selling, administrative and R&D payroll for the period, plus the baseline ratio of all remaining operating expenses and levies to positive battery gross profit. Payroll remains payable in a loss scenario. The spending ratio is an empirical budget assumption. For the FY 2024 transition, the original FY 2023 selling-expense note supplies CNY 14.9116964 billion of warranty expense. The model removes it from both baseline expenses and baseline battery gross profit to align with the target gross-profit definition. [2023 annual report](https://static.cninfo.com.cn/finalpage/2024-03-16/1219313047.PDF) · [2024 annual report](https://static.cninfo.com.cn/finalpage/2025-03-15/1222806982.PDF)
+
+Interest income uses the baseline interest yield on average opening and closing cash applied to closing cash. Reported interest expense and finance fees carry forward. The investment assumption uses equity-accounted associate and joint venture earnings. Other income (including grants) and impairments use the baseline run rate. New FX gains and other pre-tax items such as disposal gains default to zero. Grants, currency movements and impairments can vary significantly. Annual tax and parent shares divide pooled tax by pooled pre-tax profit and pooled attributable by pooled net profit over the two most recent completed years. FY 2021 uses the FY 2019 comparatives in the FY 2020 annual report. Historical scenario presets use their own reported rates and signed financial items for reconciliation. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-04-28/1209834834.PDF) · [2025 annual report](https://static.cninfo.com.cn/finalpage/2026-03-09/1225002666.PDF)
+
+The Q4 scenario uses one half of H1 materials profit and payroll, the H1 non-payroll expense ratio, and FY 2025 other-business gross profit per Wh. Interest, equity-accounted earnings, other income and impairment use one third of the corresponding nine-month flows, with fees from H1. The two comparable nine-month periods supply the pooled tax and parent shares. At the opening assumptions Q4 attributable profit is CNY 29.087 billion and FY 2026 attributable profit is CNY 93.617 billion. [H1 report](https://static.cninfo.com.cn/finalpage/2026-07-24/1225442062.PDF) · [Nine-month report](https://static.cninfo.com.cn/finalpage/2026-10-21/1225613175.PDF)
+
+| Fiscal year | Parameter baseline | Estimated attributable profit (CNY 100m) | Reported (CNY 100m) | Previous error | Revised error |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 2021 | 2020 | 144.66 | 159.31 | −55.97% | −9.20% |
+| 2022 | 2021 | 333.49 | 307.29 | −10.37% | +8.52% |
+| 2023 | 2022 | 466.08 | 441.21 | +8.49% | +5.64% |
+| 2024 | 2023 | 547.71 | 507.45 | −7.73% | +7.93% |
+| 2025 | 2024 | 652.49 | 722.01 | −30.66% | −9.63% |
+
+The five-year MAPE falls from 22.64% to 8.18% and the maximum absolute percentage error from 55.97% to 9.63%. Each test uses only the target year’s realized battery sales volumes and unit gross profits as operating inputs. The same five years were examined during model selection. In FY 2022, estimated expenses were CNY 8.63 billion too low, partly offset by underestimated financial and other pre-tax items. In FY 2025 those pre-tax items were CNY 8.10 billion below the reported amount. The page and CSV show signed error contributions for each year.
 
 ## Parameter presets and actuals
 
@@ -146,7 +168,7 @@ The incremental adjustment is **attributable, after-tax** and only includes cont
 
 ## Historical validation
 
-All three tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
+The three mining and oil tabs default to the latest five complete fiscal years in the report history. The table, input audit, metrics, error band and exports use that window. FY 2021–2025 uses FY 2020 as the opening parameter anchor. The local annual supplement extends the pinned Zijin release with original FY 2020 and 2021 mining sales, unit costs and consolidated earnings. Target-year reported sales volumes, realized selling prices and unit sales costs enter the calculation. Prior-year reports supply the profit-bridge parameters.
 
 Configured thresholds: annual MAPE ≤15% and maximum annual absolute percentage error ≤25%. Signed error is `100 * (estimated / actual - 1)`; MAPE is the unweighted mean of absolute annual percentage errors.
 
