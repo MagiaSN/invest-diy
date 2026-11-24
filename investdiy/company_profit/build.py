@@ -9,7 +9,7 @@ import json
 import re
 from pathlib import Path
 
-from . import annual_history, cmoc
+from . import annual_history, cmoc, zangge
 from .prices import fetch_snapshot
 from ..common import net
 
@@ -63,22 +63,23 @@ def validate_baseline(data: dict) -> None:
 
 def build(source: Path | None = None) -> Path:
     data = load_baseline(source)
-    data.pop("cmoc", None)
-    cmoc_data = cmoc.baseline()
-    validate_baseline(cmoc_data)
+    histories = {"cmoc": cmoc.baseline(), "zangge": zangge.baseline()}
+    for name, history in histories.items():
+        data.pop(name, None)
+        validate_baseline(history)
     data["market"] = fetch_snapshot()
     out = PACKAGE / "data" / "out"
     out.mkdir(parents=True, exist_ok=True)
-    history_json = json.dumps({**data, "cmoc": cmoc_data}, ensure_ascii=False, indent=2) + "\n"
-    js = "window.CompanyProfitData = " + json.dumps(data, ensure_ascii=False) + ";\n"
-    cmoc_js = "window.CmocProfitData = " + json.dumps(cmoc_data, ensure_ascii=False) + ";\n"
+    history_json = json.dumps({**data, **histories}, ensure_ascii=False, indent=2) + "\n"
+    scripts = {"history.js": "window.CompanyProfitData = " + json.dumps(data, ensure_ascii=False) + ";\n"}
+    for name, history in histories.items():
+        payload = json.dumps(history, ensure_ascii=False)
+        scripts[f"{name}-history.js"] = f"window.{name.capitalize()}ProfitData = {payload};\n"
     html = (PACKAGE / "web" / "index.html").read_text(encoding="utf-8")
 
     def asset(path: str) -> str:
-        if path == "data/history.js":
-            return js
-        if path == "data/cmoc-history.js":
-            return cmoc_js
+        if path.startswith("data/") and path[5:] in scripts:
+            return scripts[path[5:]]
         if path.startswith("/static/"):
             return (ROOT / "investdiy" / "web" / path.lstrip("/")).read_text(encoding="utf-8")
         return ((out / path[5:]) if path.startswith("data/") else (PACKAGE / "web" / path)).read_text(encoding="utf-8")
@@ -96,8 +97,8 @@ def build(source: Path | None = None) -> Path:
     writer = csv.DictWriter(buffer, fieldnames=list(status))
     writer.writeheader()
     writer.writerow(status)
-    for name, contents in (("history.json", history_json), ("history.js", js), ("cmoc-history.js", cmoc_js),
-                           (destination.name, html), ("market-status.csv", buffer.getvalue())):
+    outputs = {"history.json": history_json, **scripts, destination.name: html, "market-status.csv": buffer.getvalue()}
+    for name, contents in outputs.items():
         temporary = out / (name + ".tmp")
         temporary.write_text(contents, encoding="utf-8")
         temporary.replace(out / name)

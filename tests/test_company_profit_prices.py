@@ -107,13 +107,13 @@ class QuoteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             package = Path(directory)
             out = package / 'data/out'; out.mkdir(parents=True)
-            for name in ('history.json','history.js','cmoc-history.js','company-profit.html','market-status.csv'): (out/name).write_text('previous version')
+            for name in ('history.json','history.js','cmoc-history.js','zangge-history.js','company-profit.html','market-status.csv'): (out/name).write_text('previous version')
             history = json.loads((build.PACKAGE/'data/out/history.json').read_text())
             source = package/'source.md'
             source.write_text('<!-- PROFIT_MODEL_DATA_START -->\n```json\n'+json.dumps(history)+'\n```')
             with patch.object(build,'PACKAGE',package), patch.object(build,'fetch_snapshot',side_effect=TimeoutError('upstream failed')):
                 with self.assertRaises(TimeoutError): build.build(source)
-            for name in ('history.json','history.js','cmoc-history.js','company-profit.html','market-status.csv'): self.assertEqual((out/name).read_text(),'previous version')
+            for name in ('history.json','history.js','cmoc-history.js','zangge-history.js','company-profit.html','market-status.csv'): self.assertEqual((out/name).read_text(),'previous version')
 
     def test_build_embeds_the_same_snapshot_in_server_data_and_offline_page(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -128,9 +128,10 @@ class QuoteTests(unittest.TestCase):
             self.assertEqual(fetch.call_count,1)
             saved = json.loads((package/'data/out/history.json').read_text())
             self.assertEqual(saved['market'],market)
-            cmoc_script = (package/'data/out/cmoc-history.js').read_text()
-            self.assertIn(json.dumps(saved['cmoc'], ensure_ascii=False), cmoc_script)
-            self.assertIn(cmoc_script, destination.read_text())
+            for company in ('cmoc', 'zangge'):
+                script = (package / f'data/out/{company}-history.js').read_text()
+                self.assertIn(json.dumps(saved[company], ensure_ascii=False), script)
+                self.assertIn(script, destination.read_text())
             with (package/'data/out/market-status.csv').open() as handle:
                 status = next(csv.DictReader(handle))
             self.assertEqual(status['as_of'], min([q['quoted_at'][:10] for q in market['quotes']] + [market['fx']['as_of']]))

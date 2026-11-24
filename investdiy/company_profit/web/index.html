@@ -18,6 +18,7 @@
   <div class="company-tabs" role="tablist" data-i18n-aria-label="company.tabs">
     <button id="company-zijin" type="button" role="tab" aria-selected="true" aria-controls="company-panel" data-i18n="company.zijin"></button>
     <button id="company-cmoc" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="company-panel" data-i18n="company.cmoc"></button>
+    <button id="company-zangge" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="company-panel" data-i18n="company.zangge"></button>
   </div>
   <div id="company-panel" role="tabpanel" aria-labelledby="company-zijin" tabindex="0">
   <section class="preset-grid" aria-label="Presets" data-i18n-aria-label="presets.title">
@@ -30,7 +31,16 @@
   <p class="note" id="production-applied" role="status"></p>
   <form id="inputs" novalidate>
     <div class="workspace">
-      <section class="card minerals"><div class="card-head"><h2 data-i18n="minerals"></h2><span class="note" data-i18n="live"></span></div><p class="note" data-i18n="price.note"></p><p id="fx-note" class="note"></p><div id="metal-inputs"></div></section>
+      <section class="card minerals">
+        <div class="card-head"><h2 data-i18n="minerals"></h2><span class="note" data-i18n="live"></span></div>
+        <section id="julong" hidden>
+          <h3 data-i18n="julong.title"></h3>
+          <div id="julong-inputs"></div>
+          <p id="julong-note" class="note"></p>
+        </section>
+        <p class="note" data-i18n="price.note"></p><p id="fx-note" class="note"></p>
+        <div id="metal-inputs"></div>
+      </section>
       <aside class="result-panel">
         <p class="eyebrow" data-i18n="result.parent"></p><div class="hero-value"><output id="parent" aria-live="polite"></output><span data-i18n="unit.money"></span></div>
         <p id="error" role="alert" hidden></p><p id="band" class="result-note"></p>
@@ -63,6 +73,7 @@
 <script src="presets.js"></script>
 <script src="data/history.js"></script>
 <script src="data/cmoc-history.js"></script>
+<script src="data/zangge-history.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
