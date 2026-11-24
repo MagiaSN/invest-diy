@@ -1,4 +1,4 @@
-# Company Profit Forecast
+# Company Earnings Forecast
 
 The calculator at `/company-profit/` estimates attributable profit for Zijin Mining and CMOC. Each company has its own reported production, realized prices, costs and historical backtests. Both tabs support production guidance, price presets, editable profit bridges, price sensitivity, scenario JSON and backtest CSV downloads.
 
@@ -51,7 +51,7 @@ Associate and JV income now uses the prior report’s monthly earnings times sce
 
 The revised FY 2021 estimate still understates tax expense by 13.68. For FY 2022 the tax-expense error falls from a 5.61 overestimate to a 0.35 underestimate, while other pre-tax items and associate income remain 8.06 and 6.48 below reported amounts. In FY 2023 the associate-income overestimate falls to 2.70. Other pre-tax items are still 28.09 too high and minority profit is 27.92 too high, so those two errors nearly offset in attributable profit.
 
-The FY 2020–2022 records preserve copper/cobalt, molybdenum/tungsten and niobium/phosphate group economics. For each pair, combined reported tonnes multiplied by the blended unit price or cost recovers the disclosed group revenue or cost of sales. The 2020 niobium and phosphate financial lines are summed for comparability. Australian NPM stays in the residual, as in subsequent years. The grouped reports appear in the validation audit and sources. Interactive single-product presets begin in 2023. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-03-23/1209426961.PDF) · [2021 annual report](https://static.cninfo.com.cn/finalpage/2022-03-19/1212626342.PDF) · [2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-18/1216148712.PDF)
+The FY 2020–2022 records preserve copper/cobalt, molybdenum/tungsten and niobium/phosphate group economics. For each pair, combined reported tonnes multiplied by the blended unit price or cost recovers the disclosed group revenue or cost of sales. The 2020 niobium and phosphate financial lines are summed for comparability. Australian NPM stays in the residual, as in subsequent years. The annual backtest input table shows the grouped sales, prices and costs for FY 2021–2022. Interactive single-product presets begin in 2023. [2020 annual report](https://static.cninfo.com.cn/finalpage/2021-03-23/1209426961.PDF) · [2021 annual report](https://static.cninfo.com.cn/finalpage/2022-03-19/1212626342.PDF) · [2022 annual report](https://static.cninfo.com.cn/finalpage/2023-03-18/1216148712.PDF)
 
 The bridge scales other net pre-tax items by mining product revenue at the baseline ratio. Trading, eliminations and expenses can move differently from mining margins. For example, a higher unit sales cost now reduces mining gross profit while leaving this revenue-based line unchanged.
 
@@ -71,7 +71,7 @@ Historical estimate-versus-actual results are shown in the rolling validation se
 
 ### Production guidance
 
-Source: Zijin announcement 2026-012, dated 9 February 2026, PDF p3, provided in the adjacent research repository as `紫金矿业-601899_关于三年（2026—2028年）主要矿产品产量规划和2035年远景目标纲要的公告.pdf`. The table was checked in both extracted text and the rendered PDF. An [official English version](https://www.zijinmining.com/upload/file/2026/02/09/c08d3f959bdd4800a9c30c15e6afaab5.pdf) is linked from the page.
+Source: Zijin announcement 2026-012, dated 9 February 2026, PDF p3, provided in the adjacent research repository as `紫金矿业-601899_关于三年（2026—2028年）主要矿产品产量规划和2035年远景目标纲要的公告.pdf`. The table was checked in both extracted text and the rendered PDF. See the [official English version](https://www.zijinmining.com/upload/file/2026/02/09/c08d3f959bdd4800a9c30c15e6afaab5.pdf).
 
 | Preset | Gold, t | Copper, 10,000 t | Silver, t |
 |---|---:|---:|---:|
@@ -150,7 +150,7 @@ Configured thresholds: annual MAPE ≤15% and maximum annual absolute percentage
 
 Five-year MAPE falls from 9.27% to 2.49% and maximum absolute percentage error from 24.24% to 6.09%. In FY 2021 the old formula deducted 105.77 of other pre-tax items versus 66.89 reported. The duration-based projection deducts 58.35. Associate earnings remain 11.21 below the reported amount. Meeting the configured thresholds describes these historical conditional tests; it is not an external certification or a future error guarantee. Model design had access to these years, so they are not a blind holdout; actual future production and prices are unknown. Prior-year annual reports also become available only after publication in the following year.
 
-Original 2022 group production was visually checked in its own annual report: gold 56,360 kg, copper 877,317 t, zinc 402,321 t (excluding lead), silver 387,458 kg. Later 2023 comparatives change some of these figures, and are deliberately not used in the 2022 parameter anchor. Product sales and costs were visually cross-checked on PDF pp50–51; production on pp30, 33 and 53. Subsequent annual and interim source locations and links are included in the HTML and authoritative record.
+Original 2022 group production was visually checked in its own annual report: gold 56,360 kg, copper 877,317 t, zinc 402,321 t (excluding lead), silver 387,458 kg. Later 2023 comparatives change some of these figures, and are deliberately not used in the 2022 parameter anchor. Product sales and costs were visually cross-checked on PDF pp50–51; production on pp30, 33 and 53. The 2023 annual report uses printed pp25–31 and 42–44 and financial p9. The 2024 report uses printed pp24–31 and 40–42 and the consolidated income statement. The 2025 report uses printed pp24–31 and 44–47 and PDF pp116–117. For H1 2026, see the operating volume, price and cost tables and the consolidated income statement. For 9M 2026, see PDF pp6–8 and the consolidated income statement. Report links are recorded in `history.json`.
 
 The 2021 backtest has the largest absolute percentage error. Pre-tax items, tax and attribution can offset one another. Five annual observations are too few to estimate a statistical confidence interval. The UI's reference band merely applies the largest annual absolute error to the current estimate. It is suppressed for large scenario changes, nonzero manual adjustments or weak gross profits.
 

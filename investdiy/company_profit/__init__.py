@@ -1,10 +1,10 @@
-"""Company profit forecasts with company-specific models."""
+"""Company earnings forecasts with company-specific models."""
 
 TOOL = {
     "slug": "company-profit",
     "visibility": "public",
-    "title": "公司利润预测",
-    "title_en": "Company Profit Forecast",
+    "title": "公司业绩预测",
+    "title_en": "Company Earnings Forecast",
     "description": "基于业务量、价格和成本预测公司利润，支持参数调整、敏感性分析和历史回测。",
     "description_en": "Forecast company earnings from business volumes, prices and costs, with editable assumptions, sensitivity analysis and historical validation.",
     "update": "python -m investdiy.company_profit",

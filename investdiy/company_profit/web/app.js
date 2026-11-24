@@ -194,9 +194,6 @@
       $('backtests').append(row([period(r.year), r.base, fmt(r.predicted), fmt(r.actual), (r.error >= 0 ? '+' : '') + fmt(r.error) + '%']));
       r.input.metals.forEach(m => $('audit').append(row([period(r.year), t(m.id), fmt(m.production, 4), fmt(m.price), fmt(m.cost)])));
     });
-    $('sources').replaceChildren();
-    D.history.forEach(r => { const li = document.createElement('li'), a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = company === 'cmoc' ? t('cmoc.report', {period:period(r.year)}) : (i18n.has('source.' + r.year) ? t('source.' + r.year) : period(r.year)); li.append(a); $('sources').append(li); });
-    $('version').textContent = t('version', {date:D.verified, hash:D.source_sha256.slice(0, 16)});
   }
   function reset(taxBasis = 'reported') {
     base = D.history.find(r => r.year === $('base').value);
@@ -293,7 +290,6 @@
     localized.forEach(([el, key]) => { el.dataset.i18n = keyFor(key); });
     options('base', D.history.filter(r => !r.grouped).map(r => r.year).reverse(), 'period.');
     options('production-preset', Object.keys(P.guidance[company].plans), 'plan.');
-    $('production-source').href = P.guidance[company].source;
     if (saved[company]) restore(saved[company]);
     else { reset('forecast'); applyProduction(); applyLatest(); }
     renderHistory(); renderSnapshot(); i18n.apply();
