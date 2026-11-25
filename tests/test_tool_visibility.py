@@ -121,10 +121,10 @@ class ProjectVisibilityTests(unittest.TestCase):
         self.assertCountEqual(HOME_TOOLS, list(tools))
         self.assertEqual([row['slug'] for row in tools_payload(tools)], HOME_TOOLS)
 
-    def test_financial_calendar_is_local_and_excluded_from_public_discovery(self):
+    def test_financial_calendar_is_first_in_the_public_catalog(self):
         slug = 'financial-calendar'
-        self.assertEqual(registry.discover()[slug][0].visibility, 'local')
-        self.assertNotIn(slug, registry.discover(public_only=True))
+        first = tools_payload(registry.discover(public_only=True))[0]
+        self.assertEqual((first['slug'], first['visibility']), (slug, 'public'))
 
     def test_battery_tracker_is_local_and_excluded_from_public_discovery(self):
         slug = 'cn-track-battery-schedule'

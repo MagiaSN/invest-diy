@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import unittest
 
 from investdiy.common.update_schedule import (
-    due_for_refresh, ETF_SCHEDULES, PROFIT_SCHEDULES, GOLD_SCHEDULE, US_MACRO_SCHEDULE, REQUIRED_OUTPUTS,
+    due_for_refresh, ETF_SCHEDULES, PROFIT_SCHEDULES, GOLD_SCHEDULE, US_MACRO_SCHEDULE, CALENDAR_SCHEDULE, REQUIRED_OUTPUTS,
 )
 
 
@@ -18,6 +18,7 @@ class ScheduleTests(unittest.TestCase):
         for names in REQUIRED_OUTPUTS.values():
             for name in names:
                 (self.data / name).touch()
+        (self.data / "earnings.json").write_text('{"as_of":"2026-10-31"}')
 
     def due(self, slug, schedule, *, asof="2026-10-31", day=19, event="schedule", update="python -m tool", refresh_scope="all"):
         tool = SimpleNamespace(slug=slug, data=self.data, update=update, asof=lambda _: asof)
@@ -31,13 +32,23 @@ class ScheduleTests(unittest.TestCase):
             self.assertTrue(self.due(slug, "", asof="", **options))
 
     def test_schedules_refresh_only_their_own_tool_with_a_complete_cache(self):
-        schedules = ETF_SCHEDULES | PROFIT_SCHEDULES | {GOLD_SCHEDULE, US_MACRO_SCHEDULE}
+        schedules = ETF_SCHEDULES | PROFIT_SCHEDULES | {GOLD_SCHEDULE, US_MACRO_SCHEDULE, CALENDAR_SCHEDULE}
         for schedule in schedules:
             with self.subTest(schedule=schedule):
                 self.assertEqual(self.due("company-profit", schedule), schedule in PROFIT_SCHEDULES)
                 self.assertEqual(self.due("ashare-track-national-team-etf", schedule), schedule in ETF_SCHEDULES)
                 self.assertEqual(self.due("cn-track-pboc-gold", schedule, day=7), schedule == GOLD_SCHEDULE)
                 self.assertEqual(self.due("us-track-macro", schedule, day=2), schedule == US_MACRO_SCHEDULE)
+                self.assertEqual(self.due("financial-calendar", schedule), schedule == CALENDAR_SCHEDULE)
+
+    def test_calendar_scope_and_recovery_after_partial_refresh(self):
+        manual = dict(event="workflow_dispatch", refresh_scope="financial-calendar")
+        self.assertTrue(self.due("financial-calendar", "", **manual))
+        self.assertFalse(self.due("us-track-macro", "", **manual))
+        etf_slot = next(iter(ETF_SCHEDULES))
+        self.assertTrue(self.due("financial-calendar", etf_slot, asof="2026-11-01"))
+        (self.data / "earnings.json").unlink()
+        self.assertTrue(self.due("financial-calendar", etf_slot))
 
     def test_gold_retries_only_missing_months_but_revision_day_always_refreshes(self):
         self.assertFalse(self.due("cn-track-pboc-gold", GOLD_SCHEDULE, day=8))

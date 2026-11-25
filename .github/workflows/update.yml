@@ -26,6 +26,8 @@ on:
     - cron: "17 8 * * 1-5"
     # US macro: 09:43 Beijing on the 2nd of each month, after the preceding month's releases.
     - cron: "43 1 2 * *"
+    # Financial calendar: 08:33 Beijing every day, including weekends.
+    - cron: "33 0 * * *"
   workflow_dispatch:
     inputs:
       refresh_scope:
@@ -35,6 +37,7 @@ on:
           - all
           - company-profit
           - us-track-macro
+          - financial-calendar
         default: all
       publish:
         description: "Publish to surge.sh"

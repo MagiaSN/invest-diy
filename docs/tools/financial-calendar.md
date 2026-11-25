@@ -1,6 +1,6 @@
 # Financial Events Calendar
 
-Open [the local calendar](http://localhost:8765/financial-calendar/) to see company earnings, announced US releases, FOMC meetings and oversight events involving NVIDIA and Jensen Huang for the current month and the next three months. Each monthly calendar runs Monday through Sunday with one week per row. Filter by earnings, employment, inflation, Fed meetings or NVIDIA / Huang. The earnings filter supports index, ticker and company name searches. Select an event for its dates, timing or reporting status and a link to its source.
+Open [the financial calendar](https://invest-diy.surge.sh/financial-calendar/) to see company earnings, announced US releases, FOMC meetings and oversight events involving NVIDIA and Jensen Huang for the current month and the next three months. Each monthly calendar runs Monday through Sunday with one week per row. Filter by earnings, employment, inflation, Fed meetings or NVIDIA / Huang. The earnings filter supports index, ticker and company name searches. Select an event for its dates, timing or reporting status and a link to its source.
 
 ## Sources
 
@@ -31,7 +31,9 @@ Each month is shown from its first through its last day. Days before today in US
 
 ## Refresh
 
-From the repository root, run the following command.
+GitHub Actions refreshes the macro schedules and company earnings every day at 08:33 Beijing time (00:33 UTC). The shared update workflow publishes both snapshots with the public site after its data checks pass. Select `financial-calendar` in the workflow’s manual refresh menu to run it on demand. NVIDIA and Jensen Huang notices retain their separate manual review date.
+
+To run the collector locally from the repository root, use the following command.
 
 ```bash
 .venv/bin/python3 -m investdiy.financial_calendar

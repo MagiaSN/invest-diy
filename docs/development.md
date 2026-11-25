@@ -92,7 +92,7 @@ Current coverage:
 | `global-track-copper` | Local update command; no Actions coverage |
 | `company-profit` | `update.yml` → `site` artifact; metal prices and FX snapshot |
 | `us-track-macro` | `update.yml` → `site` artifact; monthly US macroeconomic observations |
-| `financial-calendar` | Local update command for US economic releases, FOMC meetings, NVIDIA oversight and constituent earnings |
+| `financial-calendar` | `update.yml` → `site` artifact with daily macro schedules and constituent earnings |
 | `pe-calculator` | Browser-only; no data update needed |
 
 ### 2. Pull Actions data
@@ -165,7 +165,7 @@ cd investdiy/dist && python3 -m http.server           # preview
 
 ## Scheduled updates
 
-Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF, China PBoC gold reserves, US macroeconomic data, the PE calculator and company-profit are public; global gold, copper and the SSE shipping tracker are local. Browser-only tools without an update command skip data refresh and freshness checks. The shipping tracker's [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
+Only tools explicitly marked `visibility: public` enter the public export and publication workflow. Missing visibility defaults to local. ETF, China PBoC gold reserves, US macroeconomic data, the financial calendar, the PE calculator and company-profit are public; global gold, copper and the SSE shipping tracker are local. Browser-only tools without an update command skip data refresh and freshness checks. The shipping tracker's [separate collection workflow](tools/global-track-container-freight.md#publication-times-and-scheduled-collection) runs at 09:37, 13:37, 15:37, 17:37 and 20:37 Beijing time, saves encrypted history, and does not publish pages to Surge.
 
 `.github/workflows/update.yml` runs tools due for refresh, checks every public tool's data dates and exports the site; `publish` then publishes that export to `invest-diy.surge.sh`. Only `publish` can read the surge secrets.
 
@@ -173,7 +173,8 @@ Only tools explicitly marked `visibility: public` enter the public export and pu
 - **Gold**: 23:53 on the 7th of each month, retries on the 8th-10th only while the previous month's figures are missing, and an unconditional revision check on the 15th. These runs include weekends; ETF fetching is skipped on the gold schedule.
 - **Company profit**: 09:17 and 16:17 Monday–Friday (Beijing time) refresh all four metal quotes and FX, then publish. These slots do not refetch ETF or PBoC gold with complete cached outputs; company-profit uses its cache on their slots. Its historical baseline bootstraps from a checksum-pinned public release asset, so CI needs no private research checkout.
 - **US macro**: 09:43 on the 2nd of each month (Beijing time; `43 1 2 * *` UTC) refreshes the headline and inflation variant series from FRED, BLS and BEA and publishes. Other slots reuse cached output. Each indicator retains its own observation month; this monthly run collects releases made during the preceding month.
-- **Manual and bootstrap**: "Run workflow" defaults to refreshing all public data tools; choose `refresh_scope: company-profit` or `refresh_scope: us-track-macro` to refresh only the selected tool while reusing other tools’ valid cached outputs. Publication can be disabled independently. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
+- **Financial calendar** runs daily at 08:33 Beijing time (`33 0 * * *` UTC). It collects US economic release and meeting dates and company earnings. Other slots reuse the two cached snapshots or rebuild them if either is missing or their update dates differ.
+- **Manual and bootstrap**: "Run workflow" defaults to refreshing all public data tools; choose `company-profit`, `us-track-macro` or `financial-calendar` as the refresh scope to refresh only the selected tool while reusing other tools’ valid cached outputs. Publication can be disabled independently. Missing data is rebuilt on any run, including after cache eviction. Otherwise, gold uses cached output on ETF runs.
 
 
 - **Secrets**: create an environment named `Publish` under Settings → Environments and add two environment secrets: `SURGE_LOGIN` (the surge account email) and `SURGE_TOKEN` (printed by `npx --yes surge@0.44.5 token`).

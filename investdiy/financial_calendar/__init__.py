@@ -2,7 +2,7 @@
 
 TOOL = {
     "slug": "financial-calendar",
-    "visibility": "local",
+    "visibility": "public",
     "title": "金融大事日历",
     "description": "查看标普 500、纳斯达克 100、恒生指数及沪深 300 成份公司的财报日历，以及美国就业、通胀、美联储议息和英伟达与黄仁勋的国会与调查日程。",
     "kind": "日历",
