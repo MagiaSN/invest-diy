@@ -1,6 +1,6 @@
 # Financial Events Calendar
 
-Open [the financial calendar](https://invest-diy.surge.sh/financial-calendar/) to see company earnings, announced US releases, FOMC meetings and oversight events involving NVIDIA and Jensen Huang for the current month and the next three months. Each monthly calendar runs Monday through Sunday with one week per row. Filter by earnings, employment, inflation, Fed meetings or NVIDIA / Huang. The earnings filter supports index, ticker and company name searches. Select an event for its dates, timing or reporting status and a link to its source.
+Open [the financial calendar](https://invest-diy.surge.sh/financial-calendar/) to see company earnings, announced US releases, FOMC meetings and oversight events involving NVIDIA and Jensen Huang for the current month and the next three months. Each monthly calendar runs Monday through Sunday with one week per row. The US Macro filter groups employment reports, inflation releases and Fed meetings. Earnings and NVIDIA / Huang have their own filters. The earnings filter supports index, ticker and company name searches. Select an event for its dates, timing or reporting status and a link to its source.
 
 ## Sources
 

@@ -20,8 +20,8 @@
 .month time { display: inline-block; min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
 .month time[aria-current] { background: var(--accent); color: var(--panel); border-radius: 20px; }
 .event { --category: var(--s1); display: block; width: 100%; margin-top: 2px; padding: 3px 5px; text-align: left; border: 0; border-left: 3px solid var(--category); border-radius: 3px; background: color-mix(in srgb, var(--category) 12%, var(--panel)); color: var(--fg); font: 600 13px/1.4 var(--font); cursor: pointer; }
-.event.prices { --category: var(--s2); }
-.event.policy { --category: var(--s3); }
+.event.cpi, .event.ppi, .event.pce { --category: var(--s2); }
+.event.fomc { --category: var(--s3); }
 .event.nvidia { --category: var(--s4); overflow-wrap: anywhere; }
 .agenda .seg { flex-wrap: wrap; flex-shrink: 1; }
 .event:hover { background: color-mix(in srgb, var(--category) 22%, var(--panel)); }

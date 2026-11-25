@@ -1,5 +1,5 @@
 (() => {
-  const groups = { empsit: 'jobs', cpi: 'prices', ppi: 'prices', pce: 'prices', fomc: 'policy', nvidia: 'nvidia', earnings: 'earnings' };
+  const groups = { empsit: 'macro', cpi: 'macro', ppi: 'macro', pce: 'macro', fomc: 'macro', nvidia: 'nvidia', earnings: 'earnings' };
   const eastern = 'America/New_York';
   const beijing = 'Asia/Shanghai';
   const agenda = document.querySelector('#agenda');
@@ -78,7 +78,7 @@
 
   function eventButton(row, day, dateLabel) {
     const title = row['title_' + i18n.lang] || i18n.t('cal.' + row.series);
-    const button = element('button', '', 'event ' + groups[row.series]);
+    const button = element('button', '', 'event ' + row.series);
     const short = row.series === 'earnings' ? row.symbols[0].split(':')[1]
       : i18n.t(row.kind ? 'cal.kind.' + row.kind : 'cal.short.' + row.series);
     button.append(element('span', title, 'full-name'), element('span', short, 'short-name'));
